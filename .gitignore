@@ -1,0 +1,17 @@
+# Ignore everything
+*
+
+# Allow these files
+!.gitignore
+!CMakeLists.txt
+!README.md
+
+# Allow these folders
+!assets/
+!libs/
+!src/
+
+# Allow the contents of these folders
+!assets/**
+!libs/**
+!src/**
