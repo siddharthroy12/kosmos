@@ -1,6 +1,11 @@
 #include "platform.h"
 #include "sokol_app.h"
 
+// Fix the ASSETS_PATH not defined error in vscode
+#ifndef ASSETS_PATH
+#define ASSETS_PATH
+#endif
+
 platform_window_details window = {
     .width  = 800,
     .height = 450,
