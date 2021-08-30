@@ -14,7 +14,8 @@ typedef struct platform_window_details
 
 // The game program must define these functions and global variables
 extern platform_window_details window;
-extern void on_init();
-extern void on_update();
-extern void on_event(const sapp_event* event);
+extern void game_init(void);
+extern void game_update(void);
+extern void game_event(const sapp_event* event);
+extern void game_exit(void);
 #endif // PLATFORM_H

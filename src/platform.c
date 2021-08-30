@@ -28,12 +28,12 @@ static void sokol_on_init(void)
     batch = rf_create_default_render_batch(RF_DEFAULT_ALLOCATOR);
     rf_set_active_render_batch(&batch);
 
-    on_init();
+    game_init();
 }
 
 static void sokol_on_frame(void)
 {
-    on_update();
+    game_update();
 }
 
 static void sokol_on_event(const sapp_event* event)
@@ -48,7 +48,12 @@ static void sokol_on_event(const sapp_event* event)
     }
 
     // Define this function in game.c
-    on_event(event);
+    game_event(event);
+}
+
+static void sokol_on_cleanup(void)
+{
+    game_exit();
 }
 
 sapp_desc sokol_main(int argc, char** argv)
@@ -61,5 +66,6 @@ sapp_desc sokol_main(int argc, char** argv)
         .init_cb      = sokol_on_init,
         .frame_cb     = sokol_on_frame,
         .event_cb     = sokol_on_event,
+        .cleanup_cb   = sokol_on_cleanup
     };
 }
