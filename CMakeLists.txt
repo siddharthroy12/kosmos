@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.1)
-project(your-project-name-goes-here LANGUAGES C) # Change the name to your project here
+project(kosmos LANGUAGES C) # Change the name to your project here
 
 set(CMAKE_C_STANDARD 99)
 
@@ -13,7 +13,8 @@ add_library(rayfork libs/rayfork/rayfork.c)
 target_include_directories(rayfork PUBLIC libs)
 
 # Setup project
-add_executable(${CMAKE_PROJECT_NAME} src/platform.c src/main.c)
+file(GLOB_RECURSE APP_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/*.c)
+add_executable(${CMAKE_PROJECT_NAME} ${APP_SOURCES})
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glad rayfork)
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE libs/rayfork libs/sokol)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC ASSETS_PATH="${CMAKE_CURRENT_SOURCE_DIR}/assets/") # This is useful to get an ASSETS_PATH in your IDE during development but you should comment this if you compile a release version and uncomment the next line

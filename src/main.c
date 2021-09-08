@@ -1,52 +1,53 @@
 #include "platform.h"
 #include "sokol_app.h"
-
-// Fix the ASSETS_PATH not defined error in vscode
-#ifndef ASSETS_PATH
-#define ASSETS_PATH
-#endif
+#include "./scenes/main_scene.h"
+#include "./scenes/game_scene.h"
 
 // Window Config
 platform_window_details window = {
     .width  = 800,
     .height = 450,
-    .title  = "raylib [core] example - basic window"
+    .title  = "Kosmos"
 };
 
-// Global vars
-rf_texture2d texture;
+// Scene management
+scene current_scene = { 0 };
+bool scene_will_change = false;
+scene *scene_to_change_to = { 0 };
+
+static void change_scene(scene *scn) {
+    scene_to_change_to = scn;
+    scene_will_change = true;
+}
+
 
 // Initialization
 extern void game_init()
 {
-    // Load texture
-    texture = rf_load_texture_from_file_ez(ASSETS_PATH"test.png"); // _ez function will use libc's io and allocator
+    current_scene = load_scene(&main_scene);
 }
 
 // Main Loop
 extern void game_update()
 {
     rf_begin();
-        rf_clear(RF_RAYWHITE);
-
-        int image_x = sapp_width() / 2 - texture.width / 2;
-        int image_y = sapp_height() / 2 - texture.height / 2;
-        rf_draw_texture(texture, image_x, image_y, RF_WHITE);
-
-        char* text = "Congrats! You created your first window!";
-        rf_sizef size = rf_measure_text(rf_get_default_font(), text, 20, 2);
-        rf_draw_text(text, sapp_width() / 2 - size.width / 2, image_y - size.height - 20, 20, RF_BLACK);
+        current_scene.update_fn(change_scene);
     rf_end();
+
+    if (scene_will_change) {
+        switch_scene(&current_scene, scene_to_change_to);
+        scene_will_change = false;
+    }
 }
 
 // Event callback
 extern void game_event(const sapp_event* event)
 {
-    printf("Event occured\n");
+   current_scene.event_fn(event);
 }
 
 // On Exit
 extern void game_exit(void)
 {
-    printf("Good bye\n");
+    current_scene.exit_fn();
 }
