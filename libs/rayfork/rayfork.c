@@ -35992,10 +35992,11 @@ RF_API void rf_draw_circle_sector_lines(rf_vec2 center, float radius, int start_
 
     // Hide the cap lines when the circle is full
     bool show_cap_lines = true;
-    int limit = 2*(segments + 2);
+    int limit = 3*(segments + 2);
     if ((end_angle - start_angle)%360 == 0) { limit = 2*segments; show_cap_lines = false; }
 
     if (rf_gfx_check_buffer_limit(limit)) rf_gfx_draw();
+
 
     rf_gfx_begin(RF_LINES);
     if (show_cap_lines)

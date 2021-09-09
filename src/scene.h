@@ -12,7 +12,7 @@ typedef struct scene scene;
 
 struct scene {
 	void (*init_fn)(void);
-	void (*update_fn)(void(*change_scene)(scene *scn));
+	void (*update_fn)(void(*change_scene)(scene *scn), float delta);
 	void (*event_fn)(const sapp_event *event);
 	void (*exit_fn)(void);
 };

@@ -1099,7 +1099,7 @@ RF_API int   rf_audio_pitch(rf_audio_player audio);
     #if defined(RAYFORK_GRAPHICS_BACKEND_GL_ES3) || defined(RAYFORK_GRAPHICS_BACKEND_METAL)
         #define RF_DEFAULT_BATCH_ELEMENTS_COUNT (2048)
     #else
-        #define RF_DEFAULT_BATCH_ELEMENTS_COUNT (8192)
+        #define RF_DEFAULT_BATCH_ELEMENTS_COUNT (50000)
     #endif
 #endif
 

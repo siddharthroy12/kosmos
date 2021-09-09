@@ -5,6 +5,7 @@
 #define SOKOL_WIN32_FORCE_MAIN
 #include "glad/glad.h"
 #include "sokol/sokol_app.h"
+#include "sokol_time.h"
 
 #ifdef RAYFORK_PLATFORM_MACOS
 // On macos sokol app includes an opengl3 header which would collide with glad.h so we just declare the glad loader function which we need
@@ -66,6 +67,8 @@ sapp_desc sokol_main(int argc, char** argv)
         .init_cb      = sokol_on_init,
         .frame_cb     = sokol_on_frame,
         .event_cb     = sokol_on_event,
-        .cleanup_cb   = sokol_on_cleanup
+        .cleanup_cb   = sokol_on_cleanup,
+        .sample_count = 4,
+        .high_dpi = true,
     };
 }

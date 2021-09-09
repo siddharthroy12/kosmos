@@ -93,7 +93,7 @@ static void on_scene_load(void) {
 	};
 }
 
-static void on_scene_update(void(*change_scene)(scene *scn)) {
+static void on_scene_update(void(*change_scene)(scene *scn), float delta) {
 	rf_clear((rf_color){18, 18, 18, 255});
 
 	draw_title((rf_vec2){ sapp_width()/ 2, (sapp_height()/2) - 100 }, "Kosmos");
