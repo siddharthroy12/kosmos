@@ -9,6 +9,7 @@ typedef struct button {
 	char *title;
 	short offset;
 	bool border;
+	bool pressed;
 	void (*on_click)(void);
 } button;
 
@@ -23,7 +24,7 @@ button buttons[2] = { 0 };
 rf_vec2 mouse_pos;
 
 rf_rec draw_button(button btn, bool hover) {
-	rf_color color = hover ? RF_RED : RF_WHITE;
+	rf_color color = hover || btn.pressed ? RF_RED : RF_WHITE;
 
 	float pos_x = (sapp_width()/2);
 	float pos_y = (sapp_height()/2) + btn.offset;
@@ -82,14 +83,16 @@ static void on_scene_load(void) {
 		.title = "Start",
 		.offset = 0,
 		.border = true,
-		.on_click = start_game
+		.on_click = start_game,
+		.pressed = false
 	};
 
 	buttons[1] = (button) {
 		.title = "Exit",
 		.offset = 50,
 		.border = false,
-		.on_click = exit_game
+		.on_click = exit_game,
+		.pressed = false
 	};
 }
 
@@ -130,6 +133,19 @@ static void on_event(const sapp_event *event) {
 			mouse_pos.x = event->mouse_x;
 			mouse_pos.y = event->mouse_y;
 			break;
+		case SAPP_EVENTTYPE_KEY_DOWN:
+			switch (event->key_code) {
+				case SAPP_KEYCODE_ESCAPE:
+					buttons[1].pressed = true;
+					exit_game();
+					break;
+				case SAPP_KEYCODE_SPACE:
+				case SAPP_KEYCODE_ENTER:
+					buttons[2].pressed = true;
+					start_game();
+				default:
+					break;
+			}
 		default:
 			break;
 		}
