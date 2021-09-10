@@ -78,6 +78,7 @@ rf_vec2 player_pos = { 0.0f, 0.0f };
 rf_vec2 player_dir = { 0.0f, 0.0f };
 float player_speed = 0.0f;
 bool game_over = false;
+bool game_pause = false;
 
 // Timer
 uint64_t shoot_start_time;
@@ -130,6 +131,8 @@ void reset_state(void) {
 	player_dir = (rf_vec2){ 0.0f, 0.0f };
 	player_speed = 0.0f;
 	game_over = false;
+	game_pause = false;
+	shoot = false;
 
 	// Init bullets
 	for (int i = 0; i < BULLETS_BUFFER_SIZE; i++) {
@@ -165,45 +168,49 @@ void update_camera(void) {
 }
 
 void draw_and_update_enemies(float delta) {
+	rf_vec2 end_point = { 0 };
 	for (int i = 0; i < ENEMIES_BUFFER_SIZE; i++) {
 		if (enemy_buffer[i].health > 0) {
-
+			
 			// Update gun rotation
-			rf_vec2 end_point = rf_vec2_add(enemy_buffer[i].pos, (rf_vec2){
+			end_point = rf_vec2_add(enemy_buffer[i].pos, (rf_vec2){
 				.x =  (rf_vec2_normalize(rf_vec2_sub(enemy_buffer[i].dir, enemy_buffer[i].pos)).x * 80),
 				.y =  (rf_vec2_normalize(rf_vec2_sub(enemy_buffer[i].dir, enemy_buffer[i].pos)).y * 80),
 			});
 
-			// Move the gun and shoot when player comes closer
-			if (rf_vec2_distance(player_pos, enemy_buffer[i].pos) < ENEMY_RADAR_RANGE && !game_over) {
-				enemy_buffer[i].dir.x = rf_lerp(enemy_buffer[i].dir.x, player_pos.x, delta * 0.002);
-				enemy_buffer[i].dir.y = rf_lerp(enemy_buffer[i].dir.y, player_pos.y, delta * 0.002);
-
-				bullet_buffer[current_bullet_buffer].enemy = true;
-				bullet_buffer[current_bullet_buffer].visible = true;
-				bullet_buffer[current_bullet_buffer].pos = enemy_buffer[i].pos;
-				bullet_buffer[current_bullet_buffer].dir = rf_vec2_normalize(rf_vec2_sub(bullet_buffer[current_bullet_buffer].pos, end_point));
+			if (!game_pause) {
 				
-				if (current_bullet_buffer == BULLETS_BUFFER_SIZE - 1) {
-					current_bullet_buffer = 0;
-				} else {
-					current_bullet_buffer++;
-				}
-			} 
+				// Move the gun and shoot when player comes closer
+				if (rf_vec2_distance(player_pos, enemy_buffer[i].pos) < ENEMY_RADAR_RANGE && !game_over) {
+					enemy_buffer[i].dir.x = rf_lerp(enemy_buffer[i].dir.x, player_pos.x, delta * 0.002);
+					enemy_buffer[i].dir.y = rf_lerp(enemy_buffer[i].dir.y, player_pos.y, delta * 0.002);
 
-			// Check player collision
-			if (rf_check_collision_circles(enemy_buffer[i].pos, ENEMY_HIT_RANGE, player_pos, PLAYER_HIT_RADIUS)) {
-				game_over = true;
-			}
-
-			// Check Player Bullet collision
-			for (int j = 0; j < BULLETS_BUFFER_SIZE; j++) {
-				if (rf_check_collision_circles(enemy_buffer[i].pos, ENEMY_HIT_RANGE, bullet_buffer[j].pos, BULLET_SIZE)) {
-					if (bullet_buffer[j].visible && !bullet_buffer[j].enemy) {
-						enemy_buffer[i].health--;
-						bullet_buffer[j].visible = false;
-					}
+					bullet_buffer[current_bullet_buffer].enemy = true;
+					bullet_buffer[current_bullet_buffer].visible = true;
+					bullet_buffer[current_bullet_buffer].pos = enemy_buffer[i].pos;
+					bullet_buffer[current_bullet_buffer].dir = rf_vec2_normalize(rf_vec2_sub(bullet_buffer[current_bullet_buffer].pos, end_point));
 					
+					if (current_bullet_buffer == BULLETS_BUFFER_SIZE - 1) {
+						current_bullet_buffer = 0;
+					} else {
+						current_bullet_buffer++;
+					}
+				} 
+
+				// Check player collision
+				if (rf_check_collision_circles(enemy_buffer[i].pos, ENEMY_HIT_RANGE, player_pos, PLAYER_HIT_RADIUS)) {
+					game_over = true;
+				}
+
+				// Check Player Bullet collision
+				for (int j = 0; j < BULLETS_BUFFER_SIZE; j++) {
+					if (rf_check_collision_circles(enemy_buffer[i].pos, ENEMY_HIT_RANGE, bullet_buffer[j].pos, BULLET_SIZE)) {
+						if (bullet_buffer[j].visible && !bullet_buffer[j].enemy) {
+							enemy_buffer[i].health--;
+							bullet_buffer[j].visible = false;
+						}
+						
+					}
 				}
 			}
 
@@ -233,13 +240,6 @@ void draw_and_update_player(float delta) {
 	rf_vec2 world_mouse_pos = rf_get_screen_to_world2d(virtual_mouse_pos, camera);
 	float rotation = rf_vec2_angle(player_pos, world_mouse_pos) + 90.0f;
 
-	// If cursor if away enough and player hasn't reached his max speed then accelerate or else deaccelerate
-	if (accelerate && player_speed < PLAYER_MAX_SPEED && rf_vec2_distance(world_mouse_pos, player_pos) > 5.0f && !game_over) {
-		player_speed += PLAYER_ACCLERATION * delta;
-	} else {
-		player_speed = rf_lerp(player_speed, 0.0f, PLAYER_DEACCLERATION * delta);
-	}
-
 	// Draw player sprite
 	rf_draw_texture_region(
 		player_texture,
@@ -260,55 +260,65 @@ void draw_and_update_player(float delta) {
 		RF_WHITE
 	);
 
-	// Get the direction from player to cursor
-	player_dir = rf_vec2_normalize(rf_vec2_sub(player_pos, world_mouse_pos));
-
-	// Move the player towards direction
-	if (rf_vec2_distance(world_mouse_pos, player_pos) > 5.0f) {
-		player_pos = rf_vec2_add(player_pos, (rf_vec2){
-			.x = -(player_dir.x * player_speed * delta),
-			.y = -(player_dir.y * player_speed * delta)
-		});
-	}
-
-	// Don't let player cross the border
-	float distance = rf_vec2_distance((rf_vec2){ 0.0f, 0.0f}, player_pos);
-
-	if (distance > GAME_BORDER_RADIUS) {
-		rf_draw_text("Don't Cross the border", player_pos.x, player_pos.y - 40.0f, 20, RF_RED);
-		rf_vec2 origin_to_player = rf_vec2_normalize(rf_vec2_sub(player_pos, (rf_vec2){0.0f,0.0f}));
-		player_pos = rf_vec2_scale(origin_to_player, GAME_BORDER_RADIUS);
-	}
-
-	// Check astroid collision
-	for (int i = 0; i < ASTROIDS_BUFFER_SIZE; i++) {
-		if (rf_check_collision_circles(astroid_buffer[i].pos, ASTROID_SIZE, player_pos, PLAYER_HIT_RADIUS)) {
-			game_over = true;
-		}
-	}
-
-	// Check bullet collision
-	for (int i = 0; i < BULLETS_BUFFER_SIZE; i++) {
-		if (rf_check_collision_circles(bullet_buffer[i].pos, BULLET_SIZE, player_pos, PLAYER_HIT_RADIUS)) {
-			if (bullet_buffer[i].visible && bullet_buffer[i].enemy)
-				game_over = true;
-		}
-	}
-
-	// Handle shoot logic
-	if (shoot && (stm_ms(stm_since(shoot_start_time)) > 200.0) && !game_over) {
-		bullet_buffer[current_bullet_buffer].enemy = false;
-		bullet_buffer[current_bullet_buffer].visible = true;
-		bullet_buffer[current_bullet_buffer].pos = player_pos;
-		bullet_buffer[current_bullet_buffer].dir = rf_vec2_normalize(rf_vec2_sub(player_pos, world_mouse_pos));
-		if (current_bullet_buffer == BULLETS_BUFFER_SIZE - 1) {
-			current_bullet_buffer = 0;
+	if (!game_pause) {
+		// If cursor if away enough and player hasn't reached his max speed then accelerate or else deaccelerate
+		if (accelerate && player_speed < PLAYER_MAX_SPEED && rf_vec2_distance(world_mouse_pos, player_pos) > 5.0f && !game_over) {
+			player_speed += PLAYER_ACCLERATION * delta;
 		} else {
-			current_bullet_buffer++;
+			player_speed = rf_lerp(player_speed, 0.0f, PLAYER_DEACCLERATION * delta);
 		}
 
-		shoot_start_time = stm_now();
+		// Get the direction from player to cursor
+		player_dir = rf_vec2_normalize(rf_vec2_sub(player_pos, world_mouse_pos));
+
+		// Move the player towards direction
+		if (rf_vec2_distance(world_mouse_pos, player_pos) > 5.0f) {
+			player_pos = rf_vec2_add(player_pos, (rf_vec2){
+				.x = -(player_dir.x * player_speed * delta),
+				.y = -(player_dir.y * player_speed * delta)
+			});
+		}
+
+		// Don't let player cross the border
+		float distance = rf_vec2_distance((rf_vec2){ 0.0f, 0.0f}, player_pos);
+
+		if (distance > GAME_BORDER_RADIUS) {
+			rf_draw_text("Don't Cross the border", player_pos.x, player_pos.y - 40.0f, 20, RF_RED);
+			rf_vec2 origin_to_player = rf_vec2_normalize(rf_vec2_sub(player_pos, (rf_vec2){0.0f,0.0f}));
+			player_pos = rf_vec2_scale(origin_to_player, GAME_BORDER_RADIUS);
+		}
+
+		// Check astroid collision
+		for (int i = 0; i < ASTROIDS_BUFFER_SIZE; i++) {
+			if (rf_check_collision_circles(astroid_buffer[i].pos, ASTROID_SIZE, player_pos, PLAYER_HIT_RADIUS)) {
+				game_over = true;
+			}
+		}
+
+		// Check bullet collision
+		for (int i = 0; i < BULLETS_BUFFER_SIZE; i++) {
+			if (rf_check_collision_circles(bullet_buffer[i].pos, BULLET_SIZE, player_pos, PLAYER_HIT_RADIUS)) {
+				if (bullet_buffer[i].visible && bullet_buffer[i].enemy)
+					game_over = true;
+			}
+		}
+
+		// Handle shoot logic
+		if (shoot && (stm_ms(stm_since(shoot_start_time)) > 200.0) && !game_over) {
+			bullet_buffer[current_bullet_buffer].enemy = false;
+			bullet_buffer[current_bullet_buffer].visible = true;
+			bullet_buffer[current_bullet_buffer].pos = player_pos;
+			bullet_buffer[current_bullet_buffer].dir = rf_vec2_normalize(rf_vec2_sub(player_pos, world_mouse_pos));
+			if (current_bullet_buffer == BULLETS_BUFFER_SIZE - 1) {
+				current_bullet_buffer = 0;
+			} else {
+				current_bullet_buffer++;
+			}
+
+			shoot_start_time = stm_now();
+		}
 	}
+
 
 	// Draw render distance border
 	rf_draw_circle_lines(player_pos.x, player_pos.y, RENDER_DISTANCE, RF_RED);
@@ -319,20 +329,23 @@ void draw_and_update_player(float delta) {
 
 void draw_and_update_bullets(float delta) {
 	for (int i = 0; i < BULLETS_BUFFER_SIZE; i++) {
-		bullet_buffer[i].pos = rf_vec2_add(bullet_buffer[i].pos, (rf_vec2){
-			.x = -(bullet_buffer[i].dir.x * BULLET_SPEED * delta),
-			.y = -(bullet_buffer[i].dir.y * BULLET_SPEED * delta)
-		});
-
 		if (bullet_buffer[i].visible) {
 			rf_draw_circle(bullet_buffer[i].pos.x, bullet_buffer[i].pos.y, BULLET_SIZE, RF_YELLOW);
 		}
 
-		for (int j = 0; j < ASTROIDS_BUFFER_SIZE; j++) {
-			if (rf_check_collision_circles(bullet_buffer[i].pos, BULLET_SIZE, astroid_buffer[j].pos, ASTROID_SIZE)) {
-				bullet_buffer[i].visible = false;
+		if (!game_pause) {
+			bullet_buffer[i].pos = rf_vec2_add(bullet_buffer[i].pos, (rf_vec2){
+				.x = -(bullet_buffer[i].dir.x * BULLET_SPEED * delta),
+				.y = -(bullet_buffer[i].dir.y * BULLET_SPEED * delta)
+			});
+
+			for (int j = 0; j < ASTROIDS_BUFFER_SIZE; j++) {
+				if (rf_check_collision_circles(bullet_buffer[i].pos, BULLET_SIZE, astroid_buffer[j].pos, ASTROID_SIZE)) {
+					bullet_buffer[i].visible = false;
+				}
 			}
 		}
+		
 	}
 }
 
@@ -354,14 +367,13 @@ void draw_and_update_astroids(float delta) {
 	}
 }
 
-void draw_game_over(void) {
+void draw_window(rf_color color) {
 	rf_rec rec = {
 		.x = (RENDER_WIDTH/2) - (OVERLAY_WINDOW_WIDTH/2),
 		.y = (RENDER_HEIGHT/2) - (OVERLAY_WINDOW_HEIGHT/2),
 		.width = OVERLAY_WINDOW_WIDTH,
 		.height = OVERLAY_WINDOW_HEIGHT,
 	};
-	rf_color color = RF_BLUE;
 
 	rf_color background_color = color;
 	background_color.a = 50;
@@ -369,6 +381,10 @@ void draw_game_over(void) {
 	rf_draw_rectangle_rec(rec, (rf_color){18, 18, 18, 255});
 	rf_draw_rectangle_rec(rec, background_color);
 	rf_draw_rectangle_outline(rec, 3, color);
+}
+
+void draw_game_over(void) {
+	draw_window(RF_BLUE);
 
 	char *text = "GAME OVER";
 	int pos_x = (RENDER_WIDTH/2) - (rf_measure_text(rf_get_default_font(), text, 50, 5).width/2);
@@ -377,6 +393,24 @@ void draw_game_over(void) {
 	rf_draw_text(text, pos_x, pos_y, 50, RF_RED);
 
 	update_and_draw_button(&buttons[0], virtual_mouse_pos, shoot, (rf_vec2){ RENDER_WIDTH, RENDER_HEIGHT });
+	update_and_draw_button(&buttons[1], virtual_mouse_pos, shoot, (rf_vec2){ RENDER_WIDTH, RENDER_HEIGHT });
+}
+
+void draw_game_pause() {
+	draw_window(RF_GREEN);
+
+	char *text = "GAME PAUSED";
+	char *hint = "Press [ESC] to Resume";
+
+	int pos_x = (RENDER_WIDTH/2) - (rf_measure_text(rf_get_default_font(), text, 50, 5).width/2);
+	int pos_y = (RENDER_HEIGHT/2) - 100;
+
+	int hint_x = (RENDER_WIDTH/2) - (rf_measure_text(rf_get_default_font(), text, 20, 10).width/2);
+
+	rf_draw_text(text, pos_x, pos_y, 50, RF_RED);
+	rf_draw_text(hint, hint_x, pos_y + 400, 20, RF_BLUE);
+	update_and_draw_button(&buttons[0], virtual_mouse_pos, shoot, (rf_vec2){ RENDER_WIDTH, RENDER_HEIGHT });
+	update_and_draw_button(&buttons[1], virtual_mouse_pos, shoot, (rf_vec2){ RENDER_WIDTH, RENDER_HEIGHT });
 }
 
 static void retry(void) {
@@ -384,7 +418,7 @@ static void retry(void) {
 }
 
 static void exit_game(void) {
-
+	sapp_quit();
 }
 
 static void on_scene_load(void) {
@@ -400,7 +434,7 @@ static void on_scene_load(void) {
 
 	// Init Buttons
 	buttons[0] = (button){
-		.title = "Retry",
+		.title = "Restart",
 		.offset = 0,
 		.border = true,
 		.on_click = retry,
@@ -409,7 +443,7 @@ static void on_scene_load(void) {
 
 	buttons[1] = (button){
 		.title = "Exit Game",
-		.offset = 100,
+		.offset = 70,
 		.border = true,
 		.on_click = exit_game,
 		.pressed = false
@@ -450,6 +484,10 @@ static void on_scene_update(void(*change_scene)(scene *scn), float delta) {
 			draw_game_over();
 		} else {
 			rf_draw_text("Destory enemies and avoid astroids", 20, RENDER_HEIGHT - 40, 20, RF_RED);
+		}
+
+		if (game_pause) {
+			draw_game_pause();
 		}
 
 		// Draw cursor
@@ -516,6 +554,12 @@ static void on_event(const sapp_event *event) {
 			handle_mouse_button_event(event, false);
 			break;
 		case SAPP_EVENTTYPE_KEY_DOWN:
+			switch (event->key_code) {
+				case SAPP_KEYCODE_ESCAPE:
+					if (!game_over)
+						game_pause = !game_pause;
+				break;
+			}
 			handle_key_event(event, true);
 			break;
 		case SAPP_EVENTTYPE_KEY_UP:

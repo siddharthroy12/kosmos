@@ -4,6 +4,7 @@
 #include "rayfork.h"
 #include "sokol_app.h"
 #include "sokol_time.h"
+#include "sokol_audio.h"
 
 typedef struct platform_window_details
 {

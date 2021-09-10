@@ -6,6 +6,7 @@
 #include "glad/glad.h"
 #include "sokol/sokol_app.h"
 #include "sokol_time.h"
+#include "sokol_audio.h"
 
 #ifdef RAYFORK_PLATFORM_MACOS
 // On macos sokol app includes an opengl3 header which would collide with glad.h so we just declare the glad loader function which we need

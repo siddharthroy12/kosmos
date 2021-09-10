@@ -22,7 +22,7 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC ASSETS_PATH="${CMAKE_CUR
 
 # Enable MacOS specific flags and link against it's specific libraries
 if (APPLE)
-    target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC "-framework Cocoa" "-framework QuartzCore" "-framework OpenGL")
+    target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC "-framework Cocoa" "-framework QuartzCore" "-framework OpenGL" "-framework AudioToolbox")
     target_compile_options(${CMAKE_PROJECT_NAME} PUBLIC "-fobjc-arc" "-ObjC")
 endif()
 
@@ -36,9 +36,9 @@ if (UNIX AND NOT APPLE)
         set(CMAKE_RANLIB i686-w64-mingw32-ranlib)
         target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE /usr/share/mingw-w64/include)
     endif()
-    target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC m dl pthread X11 Xi Xcursor)
+    target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC m dl pthread X11 Xi Xcursor asound)
 endif()
 
 if (MINGW32)
-    target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC -static-libgcc -static-libstdc++ -lkernel32 -luser32 -lshell32 -lgdi32 -mwin32)
+    target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC -static-libgcc -static-libstdc++ -lkernel32 -luser32 -lshell32 -lgdi32 -mwin32 -lole32)
 endif()
