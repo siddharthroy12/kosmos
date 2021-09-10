@@ -28,7 +28,6 @@
 #define ENEMY_RADAR_RANGE 500
 #define ENEMY_HIT_RANGE 50
 
-
 #define GAME_BORDER_RADIUS 2000
 
 #define RENDER_DISTANCE 1500
@@ -237,6 +236,14 @@ void draw_and_update_player(float delta) {
 	for (int i = 0; i < ASTROIDS_BUFFER_SIZE; i++) {
 		if (rf_check_collision_circles(astroid_buffer[i].pos, ASTROID_SIZE, player_pos, PLAYER_HIT_RADIUS)) {
 			game_over = true;
+		}
+	}
+
+	// Check bullet collision
+	for (int i = 0; i < BULLETS_BUFFER_SIZE; i++) {
+		if (rf_check_collision_circles(bullet_buffer[i].pos, BULLET_SIZE, player_pos, PLAYER_HIT_RADIUS)) {
+			if (bullet_buffer[i].visible && bullet_buffer[i].enemy)
+				game_over = true;
 		}
 	}
 

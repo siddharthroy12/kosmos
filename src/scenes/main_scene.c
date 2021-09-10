@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include "game_scene.h"
 
-#define TITLE_FONT_SIZE 40
+#define TITLE_FONT_SIZE 80
 
 typedef struct button {
 	char *title;
