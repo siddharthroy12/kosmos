@@ -22,7 +22,6 @@ int main(void) {
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "raylib [core] example - basic window");
     SetWindowState(FLAG_WINDOW_RESIZABLE);
    
-    SetTargetFPS(60);
     SetExitKey(0); // Do not exit on ESC key
 
     ToggleFullscreen();

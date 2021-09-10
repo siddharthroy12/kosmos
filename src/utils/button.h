@@ -12,25 +12,39 @@ typedef struct button {
 } button;
 
 static Rectangle draw_button(button btn, bool hover, Vector2 size) {
+	#ifdef BIG_BUTTON
+	int font_size = 40;
+	int extra_width = 40;
+	int height = 70;
+	int offset = 15;
+	#else
+	int height = 40;
+	int font_size = 20;
+	int extra_width = 20;
+	int offset = 10;
+	#endif
+
 	Color color = hover || btn.pressed ? RED : WHITE;
 
 	float pos_x = (size.x/2);
 	float pos_y = (size.y/2) + btn.offset;
 
+
 	Rectangle rec = {
-		.height = 40,
-		.width = MeasureTextEx(GetFontDefault(), btn.title, 20, 2).x + 20,
-		.x = pos_x - 10,
-		.y = pos_y - 10
+		.height = height,
+		.width = MeasureTextEx(GetFontDefault(), btn.title, font_size, 2).x + extra_width,
+		.x = pos_x,
+		.y = pos_y
 	};
 
-	rec.x = (rec.x - rec.width / 2) + 10; 
-	rec.y = (rec.y -rec.height / 2) + 10;
-	
-	
-	if (btn.border) DrawRectangleLinesEx(rec, 2, color);
+	rec.x = (rec.x - rec.width / 2); 
+	rec.y = (rec.y -rec.height / 2);
 
-	DrawText(btn.title, rec.x + 10, rec.y + 10, 20, color);
+	
+	
+	if (btn.border) DrawRectangleLinesEx(rec, 3, color);
+
+	DrawText(btn.title, rec.x + offset, rec.y + offset, font_size, color);
 
 	return rec;
 }

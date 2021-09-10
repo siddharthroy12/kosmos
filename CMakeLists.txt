@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-project(astroid C)
+project(kosmos C)
 
 set(CMAKE_C_STANDARD 99)
 
@@ -13,4 +13,4 @@ add_executable(${CMAKE_PROJECT_NAME} ${APP_SOURCES})
 target_link_libraries(${CMAKE_PROJECT_NAME} raylib)
 
 target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC ASSETS_PATH="${CMAKE_CURRENT_SOURCE_DIR}/assets/") # Set the asset path macro to the absolute path on the dev machine
-#target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC ASSETS_PATH="relative-path-to-assets-in-the-game-package") # Set the asset path macro in release more
+#target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC ASSETS_PATH="assets/") # Set the asset path macro in release more

@@ -2,6 +2,7 @@
 #include "raymath.h"
 #include <stdio.h>
 #include <stdlib.h>
+#define BIG_BUTTON
 #include "../utils/button.h"
 
 scene game_scene;
@@ -10,15 +11,16 @@ scene game_scene;
 #define min(a, b) ((a)<(b)? (a) : (b))
 #define rand_range(a, b) (rand() % (b + 1 - a) + a)
 
-#define RENDER_WIDTH 1280
-#define RENDER_HEIGHT 720
+#define RENDER_WIDTH 1920
+#define RENDER_HEIGHT 1080
 
 #define PLAYER_MAX_SPEED 0.4f
 #define PLAYER_ACCLERATION 0.009f
 #define PLAYER_DEACCLERATION 0.003f
-#define PLAYER_HIT_RADIUS 10
+#define PLAYER_HIT_RADIUS 30
+#define PLAYER_SIZE 40
 
-#define BULLETS_BUFFER_SIZE 150
+#define BULLETS_BUFFER_SIZE 200
 #define BULLET_SPEED 1.0f
 #define BULLET_SIZE 3
 
@@ -35,8 +37,8 @@ scene game_scene;
 
 #define RENDER_DISTANCE 1500
 
-#define OVERLAY_WINDOW_WIDTH 500
-#define OVERLAY_WINDOW_HEIGHT 300
+#define OVERLAY_WINDOW_WIDTH 800
+#define OVERLAY_WINDOW_HEIGHT 500
 
 typedef struct bullet {
 	Vector2 pos;
@@ -67,7 +69,6 @@ enemy enemy_buffer[ENEMIES_BUFFER_SIZE] = { 0 };
 // Mouse
 Vector2 virtual_mouse_pos = { 0 };
 
-
 // Player
 Texture2D player_texture = { 0 };
 Vector2 player_pos = { 0.0f, 0.0f };
@@ -88,11 +89,14 @@ Camera2D camera = {
 	.target = (Vector2) { 0.0f ,0.0f },
 	.offset = (Vector2){ (float)RENDER_WIDTH/2 ,(float) RENDER_HEIGHT/2 },
 	.rotation = 0.0f,
-	.zoom = 1.0f,
+	.zoom = 1.25f,
 };
 
 // Buttons
 button buttons[2];
+
+// State
+bool show_debug_info = false;
 
 Vector2 clamp_value(Vector2 value, Vector2 min, Vector2 max)
 {
@@ -211,6 +215,10 @@ void draw_and_update_enemies(float delta) {
 				}
 			}
 
+			if (show_debug_info) {
+				DrawCircleLines(enemy_buffer[i].pos.x, enemy_buffer[i].pos.y, ENEMY_HIT_RANGE, RED);
+			}
+
 			if (CheckCollisionCircles(enemy_buffer[i].pos, ENEMY_RADAR_RANGE, player_pos, RENDER_DISTANCE)) {
 				DrawRing(enemy_buffer[i].pos, ASTROID_SIZE, ASTROID_SIZE +3, 0,360, 5, RED);
 				Color inside = RED;
@@ -249,13 +257,19 @@ void draw_and_update_player(float delta) {
 		(Rectangle){
 			.x = player_pos.x,
 			.y = player_pos.y,
-			.width = 20,
-			.height = 20,
+			.width = PLAYER_SIZE,
+			.height = PLAYER_SIZE,
 		},
-		(Vector2){ 10, 10 },
-		rotation,
+		(Vector2){ PLAYER_SIZE/2, PLAYER_SIZE/2 },
+		rotation + 45,
 		WHITE
 	);
+
+	DrawCircle(player_pos.x, player_pos.y, 5, RED);
+
+	if (show_debug_info) {
+		DrawCircleLines(player_pos.x, player_pos.y, PLAYER_HIT_RADIUS, GREEN);
+	}
 
 	if (!game_pause) {
 		// If cursor if away enough and player hasn't reached his max speed then accelerate or else deaccelerate
@@ -385,10 +399,10 @@ void draw_game_over(void) {
 	draw_window(BLUE);
 
 	char *text = "GAME OVER";
-	int pos_x = (RENDER_WIDTH/2) - (MeasureTextEx(GetFontDefault(), text, 50, 5).x/2);
-	int pos_y = (RENDER_HEIGHT/2) - 100;
+	int pos_x = (RENDER_WIDTH/2) - (MeasureTextEx(GetFontDefault(), text, 50, 20).x/2);
+	int pos_y = (RENDER_HEIGHT/2) - 150;
 
-	DrawText(text, pos_x, pos_y, 50, RED);
+	DrawText(text, pos_x, pos_y, 70, RED);
 
 	update_and_draw_button(&buttons[0], virtual_mouse_pos, (Vector2){ RENDER_WIDTH, RENDER_HEIGHT });
 	update_and_draw_button(&buttons[1], virtual_mouse_pos, (Vector2){ RENDER_WIDTH, RENDER_HEIGHT });
@@ -400,13 +414,13 @@ void draw_game_pause() {
 	char *text = "GAME PAUSED";
 	char *hint = "Press [ESC] to Resume";
 
-	int pos_x = (RENDER_WIDTH/2) - (MeasureTextEx(GetFontDefault(), text, 50, 5).x/2);
-	int pos_y = (RENDER_HEIGHT/2) - 100;
+	int pos_x = (RENDER_WIDTH/2) - (MeasureTextEx(GetFontDefault(), text, 50, 20).x/2);
+	int pos_y = (RENDER_HEIGHT/2) - 150;
 
-	int hint_x = (RENDER_WIDTH/2) - (MeasureTextEx(GetFontDefault(), text, 20, 10).x/2);
+	int hint_x = (RENDER_WIDTH/2) - (MeasureTextEx(GetFontDefault(), text, 20, 30).x/2);
 
-	DrawText(text, pos_x, pos_y, 50, RED);
-	DrawText(hint, hint_x, pos_y + 400, 20, BLUE);
+	DrawText(text, pos_x, pos_y, 70, RED);
+	DrawText(hint, hint_x, pos_y + 600, 40, BLUE);
 	update_and_draw_button(&buttons[0], virtual_mouse_pos, (Vector2){ RENDER_WIDTH, RENDER_HEIGHT });
 	update_and_draw_button(&buttons[1], virtual_mouse_pos, (Vector2){ RENDER_WIDTH, RENDER_HEIGHT });
 }
@@ -425,6 +439,10 @@ void handle_input(void) {
 		if (!game_over)
 			game_pause = !game_pause;
 	}
+
+	if (IsKeyPressed(KEY_F1)) {
+		show_debug_info = !show_debug_info;
+	}
 }
 
 static void on_scene_load(void) {
@@ -442,15 +460,15 @@ static void on_scene_load(void) {
 	buttons[0] = (button){
 		.title = "Restart",
 		.offset = 0,
-		.border = true,
+		.border = false,
 		.on_click = retry,
 		.pressed = false
 	};
 
 	buttons[1] = (button){
 		.title = "Exit Game",
-		.offset = 70,
-		.border = true,
+		.offset = 90,
+		.border = false,
 		.on_click = exit_game,
 		.pressed = false
 	};
@@ -474,9 +492,10 @@ static void on_scene_update(void(*change_scene)(scene *scn), bool *should_exit, 
 		ClearBackground((Color){18, 18, 18, 255});
 
 		BeginMode2D(camera);
-			draw_and_update_player(delta);
 
 			draw_and_update_bullets(delta);
+
+			draw_and_update_player(delta);
 
 			draw_and_update_astroids(delta);
 
@@ -522,8 +541,10 @@ static void on_scene_update(void(*change_scene)(scene *scn), bool *should_exit, 
 			WHITE
 		);
 
-		DrawText(FormatText("FPS: %i", GetFPS()), 10, 10, 20, RED);
-
+		if (show_debug_info) {
+			DrawText(FormatText("FPS: %i", GetFPS()), 10, 10, 20, RED);
+		}
+		
     EndDrawing();
 
 	handle_input();

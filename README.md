@@ -10,7 +10,7 @@ cmake .. # or cmake .. -G "MinGW Makefiles" for windows with mingw
 cmake --build .
 ```
 
-## Cross Compilation
+## Cross Compilation From Linux to Windows
 ```
 mkdir build
 cd build
