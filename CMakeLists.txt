@@ -40,5 +40,5 @@ if (UNIX AND NOT APPLE)
 endif()
 
 if (MINGW32)
-    target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC -static-libgcc -static-libstdc++ -lkernel32 -luser32 -lshell32 -lgdi32)
+    target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC -static-libgcc -static-libstdc++ -lkernel32 -luser32 -lshell32 -lgdi32 -mwin32)
 endif()

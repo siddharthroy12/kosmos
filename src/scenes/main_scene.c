@@ -2,16 +2,9 @@
 #include "rayfork.h"
 #include <stdio.h>
 #include "game_scene.h"
+#include "../utils/button.h"
 
 #define TITLE_FONT_SIZE 80
-
-typedef struct button {
-	char *title;
-	short offset;
-	bool border;
-	bool pressed;
-	void (*on_click)(void);
-} button;
 
 // Actions
 bool mouse_left_click = false;
@@ -23,57 +16,16 @@ button buttons[2] = { 0 };
 // Mouse
 rf_vec2 mouse_pos;
 
-rf_rec draw_button(button btn, bool hover) {
-	rf_color color = hover || btn.pressed ? RF_RED : RF_WHITE;
-
-	float pos_x = (sapp_width()/2);
-	float pos_y = (sapp_height()/2) + btn.offset;
-
-	rf_rec rec = {
-		.height = 40,
-		.width = rf_measure_text(rf_get_default_font(), btn.title, 20, 2).width + 20,
-		.x = pos_x - 10,
-		.y = pos_y - 10
-	};
-
-	rec.x = (rec.x - rec.width / 2) + 10; 
-	rec.y = (rec.y -rec.height / 2) + 10;
-
-	if (btn.border) rf_draw_rectangle_outline(rec, 1, color);
-
-	rf_draw_text(btn.title, rec.x + 10, rec.y + 10, 20, color);
-
-	return rec;
-}
-
-void update_and_draw_buttons(void) {
-	rf_rec button_rec = { 0 };
-	
-	for (int i = 0; i < 2; i++) {
-		button_rec = draw_button(buttons[i], false);
-		
-		if (rf_check_collision_point_rec(mouse_pos, button_rec)) {
-			draw_button(buttons[i], true);
-		}
-
-		if (mouse_left_click) {
-			if (rf_check_collision_point_rec(mouse_pos, button_rec)) {
-				buttons[i].on_click();
-			}
-		}
-	}
-}
-
 void draw_title(rf_vec2 pos, char* title) {
 	float width = rf_measure_text(rf_get_default_font(), title, TITLE_FONT_SIZE, 2).width;
 	rf_draw_text(title, pos.x - (width /2), pos.y - (TITLE_FONT_SIZE /2), TITLE_FONT_SIZE, RF_BLUE);
 }
 
-void exit_game(void) {
+static void exit_game(void) {
 	sapp_quit();
 }
 
-void start_game(void) {
+static void start_game(void) {
 	start_game_pressed = true;
 }
 
@@ -101,7 +53,7 @@ static void on_scene_update(void(*change_scene)(scene *scn), float delta) {
 
 	draw_title((rf_vec2){ sapp_width()/ 2, (sapp_height()/2) - 100 }, "Kosmos");
 
-	update_and_draw_buttons();
+	update_and_draw_buttons(buttons, 2, mouse_pos, mouse_left_click, (rf_vec2){ sapp_width(), sapp_height() });
 
 	if (start_game_pressed) {
 		change_scene(&game_scene);
