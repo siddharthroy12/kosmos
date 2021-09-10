@@ -1,7 +1,7 @@
 #ifndef SCENE_H
 #define SCENE_H
 
-#include "sokol_app.h"
+#include <stdbool.h>
 
 // Fix the ASSETS_PATH not defined error in vscode
 #ifndef ASSETS_PATH
@@ -12,8 +12,7 @@ typedef struct scene scene;
 
 struct scene {
 	void (*init_fn)(void);
-	void (*update_fn)(void(*change_scene)(scene *scn), float delta);
-	void (*event_fn)(const sapp_event *event);
+	void (*update_fn)(void(*change_scene)(scene *scn), bool *should_exit, float delta);
 	void (*exit_fn)(void);
 };
 

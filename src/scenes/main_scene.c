@@ -1,28 +1,27 @@
 #include "../scene.h"
-#include "rayfork.h"
 #include <stdio.h>
 #include "game_scene.h"
 #include "../utils/button.h"
+#include "raylib.h"
 
 #define TITLE_FONT_SIZE 80
 
 // Actions
-bool mouse_left_click = false;
+static bool game_exit = false;
 bool start_game_pressed = false;
-
 // Buttons
 button buttons[2] = { 0 };
 
 // Mouse
-rf_vec2 mouse_pos;
+Vector2 mouse_pos;
 
-void draw_title(rf_vec2 pos, char* title) {
-	float width = rf_measure_text(rf_get_default_font(), title, TITLE_FONT_SIZE, 2).width;
-	rf_draw_text(title, pos.x - (width /2), pos.y - (TITLE_FONT_SIZE /2), TITLE_FONT_SIZE, RF_BLUE);
+void draw_title(Vector2 pos, char* title) {
+	float width = MeasureText(title, TITLE_FONT_SIZE);
+	DrawText(title, pos.x - (width /2), pos.y - (TITLE_FONT_SIZE /2), TITLE_FONT_SIZE, BLUE);
 }
 
 static void exit_game(void) {
-	sapp_quit();
+	game_exit = true;
 }
 
 static void start_game(void) {
@@ -48,68 +47,45 @@ static void on_scene_load(void) {
 	};
 }
 
-static void on_scene_update(void(*change_scene)(scene *scn), float delta) {
-	rf_clear((rf_color){18, 18, 18, 255});
+static void event_handle(void) {
+	if (IsKeyPressed(KEY_ESCAPE)) {
+		exit_game();
+	}
 
-	draw_title((rf_vec2){ sapp_width()/ 2, (sapp_height()/2) - 100 }, "Kosmos");
+	if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER)) {
+		start_game();
+	}
+}
 
-	update_and_draw_buttons(buttons, 2, mouse_pos, mouse_left_click, (rf_vec2){ sapp_width(), sapp_height() });
+static void on_scene_update(void(*change_scene)(scene *scn), bool *should_exit,  float delta) {
+	BeginDrawing();
+	ClearBackground((Color){18, 18, 18, 255});
+
+	draw_title((Vector2){ GetScreenWidth()/ 2, (GetScreenHeight()/2) - 100 }, "Kosmos");
+
+	update_and_draw_buttons(buttons, 2, GetMousePosition(),  (Vector2){ GetScreenWidth(), GetScreenHeight() });
+
+	EndDrawing();
+
 
 	if (start_game_pressed) {
 		change_scene(&game_scene);
 	}
-	
-}
 
-static void on_event(const sapp_event *event) {
-	switch(event->type) {
-		case SAPP_EVENTTYPE_MOUSE_DOWN:
-			switch(event->mouse_button) {
-				case SAPP_MOUSEBUTTON_LEFT:
-					mouse_left_click = true;
-					break;
-				default:
-					break;
-			}
-			break;
-		case SAPP_EVENTTYPE_MOUSE_UP:
-			switch(event->mouse_button) {
-				case SAPP_MOUSEBUTTON_LEFT:
-					mouse_left_click = false;
-					break;
-				default:
-					break;
-			}
-			break;
-		case SAPP_EVENTTYPE_MOUSE_MOVE:
-			mouse_pos.x = event->mouse_x;
-			mouse_pos.y = event->mouse_y;
-			break;
-		case SAPP_EVENTTYPE_KEY_DOWN:
-			switch (event->key_code) {
-				case SAPP_KEYCODE_ESCAPE:
-					buttons[1].pressed = true;
-					exit_game();
-					break;
-				case SAPP_KEYCODE_SPACE:
-				case SAPP_KEYCODE_ENTER:
-					buttons[2].pressed = true;
-					start_game();
-				default:
-					break;
-			}
-		default:
-			break;
-		}
+	if (game_exit) {
+		*should_exit = true;
+	}
+
+	event_handle();
 }
 
 
 static void on_scene_exit(void) {
+	printf("Main exit\n");
 }
 
 const scene main_scene = {
 	.init_fn = on_scene_load,
 	.update_fn = on_scene_update,
 	.exit_fn = on_scene_exit,
-	.event_fn = on_event
 };
