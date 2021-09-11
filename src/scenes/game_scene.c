@@ -20,7 +20,7 @@ scene game_scene;
 #define PLAYER_MAX_SPEED 0.4f
 #define PLAYER_ACCLERATION 0.009f
 #define PLAYER_DEACCLERATION 0.003f
-#define PLAYER_HIT_RADIUS 30
+#define PLAYER_HIT_RADIUS 25
 #define PLAYER_SIZE 40
 
 #define BULLETS_BUFFER_SIZE 200
@@ -62,6 +62,7 @@ typedef struct enemy {
 	Vector2 pos;
 	Vector2 dir;
 	int health;
+	double shoot_start_time;
 } enemy;
 
 astroid astroid_buffer[ASTROIDS_BUFFER_SIZE] = { 0 };
@@ -159,7 +160,8 @@ void reset_state(void) {
 		enemy_buffer[i] = (enemy){
 			.pos = (Vector2){ (float)rand_range(-GAME_BORDER_RADIUS, GAME_BORDER_RADIUS), (float)rand_range(-GAME_BORDER_RADIUS, GAME_BORDER_RADIUS) },
 			.dir = (Vector2){ 0.0f, 0.0f },
-			.health = ENEMY_MAX_HEALTH
+			.health = ENEMY_MAX_HEALTH,
+			.shoot_start_time = 0.0f
 		};
 	}
 }
@@ -207,20 +209,23 @@ void draw_and_update_enemies(float delta) {
 			if (!game_pause) {
 				// Move the gun and shoot when player comes closer
 				if (Vector2Distance(player_pos, enemy_buffer[i].pos) < ENEMY_RADAR_RANGE && !game_over) {
-					PlaySound(enemy_shoot_sound);
 
 					enemy_buffer[i].dir.x = Lerp(enemy_buffer[i].dir.x, player_pos.x, delta * 0.002);
 					enemy_buffer[i].dir.y = Lerp(enemy_buffer[i].dir.y, player_pos.y, delta * 0.002);
 
-					bullet_buffer[current_bullet_buffer].enemy = true;
-					bullet_buffer[current_bullet_buffer].visible = true;
-					bullet_buffer[current_bullet_buffer].pos = enemy_buffer[i].pos;
-					bullet_buffer[current_bullet_buffer].dir = Vector2Normalize(Vector2Subtract(bullet_buffer[current_bullet_buffer].pos, end_point));
-					
-					if (current_bullet_buffer == BULLETS_BUFFER_SIZE - 1) {
-						current_bullet_buffer = 0;
-					} else {
-						current_bullet_buffer++;
+					if (((GetTime() - shoot_start_time) >  0.1)) {
+						shoot_start_time = GetTime();
+						PlaySound(enemy_shoot_sound);
+						bullet_buffer[current_bullet_buffer].enemy = true;
+						bullet_buffer[current_bullet_buffer].visible = true;
+						bullet_buffer[current_bullet_buffer].pos = enemy_buffer[i].pos;
+						bullet_buffer[current_bullet_buffer].dir = Vector2Normalize(Vector2Subtract(bullet_buffer[current_bullet_buffer].pos, end_point));
+						
+						if (current_bullet_buffer == BULLETS_BUFFER_SIZE - 1) {
+							current_bullet_buffer = 0;
+						} else {
+							current_bullet_buffer++;
+						}
 					}
 				} 
 
@@ -242,7 +247,7 @@ void draw_and_update_enemies(float delta) {
 			}
 
 			if (show_debug_info) {
-				DrawCircleLines(enemy_buffer[i].pos.x, enemy_buffer[i].pos.y, ENEMY_HIT_RANGE, RED);
+				DrawRing(enemy_buffer[i].pos, ENEMY_HIT_RANGE, ENEMY_HIT_RANGE +2, 0, 360, 100, GREEN);
 			}
 
 			if (CheckCollisionCircles(enemy_buffer[i].pos, ENEMY_RADAR_RANGE, player_pos, RENDER_DISTANCE)) {
@@ -294,7 +299,7 @@ void draw_and_update_player(float delta) {
 	DrawCircle(player_pos.x, player_pos.y, 5, RED);
 
 	if (show_debug_info) {
-		DrawCircleLines(player_pos.x, player_pos.y, PLAYER_HIT_RADIUS, GREEN);
+		DrawRing(player_pos, PLAYER_HIT_RADIUS, PLAYER_HIT_RADIUS + 2, 0, 360, 100, GREEN);
 	}
 
 	if (!game_pause) {
@@ -402,6 +407,10 @@ void draw_and_update_astroids(float delta) {
 			inside.a = 200;
 			DrawCircleSector(astroid_buffer[i].pos, ASTROID_SIZE, 0,360, astroid_buffer[i].segments, inside);
 			//rf_draw_circle(astroid_buffer[i].pos.x, astroid_buffer[i].pos.y, ASTROID_SIZE, inside);
+
+			if (show_debug_info) {
+				DrawRing(astroid_buffer[i].pos, ASTROID_SIZE, ASTROID_SIZE +2, 0, 360, 100, GREEN);
+			}
 		}
 	}
 }
