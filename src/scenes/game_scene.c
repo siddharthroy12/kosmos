@@ -11,17 +11,15 @@ scene game_scene;
 #define min(a, b) ((a)<(b)? (a) : (b))
 #define rand_range(a, b) (rand() % (b + 1 - a) + a)
 
-// #define RENDER_WIDTH 1920
-// #define RENDER_HEIGHT 1080
-
 #define RENDER_WIDTH 1366
 #define RENDER_HEIGHT 768
 
 #define PLAYER_MAX_SPEED 0.4f
 #define PLAYER_ACCLERATION 0.009f
 #define PLAYER_DEACCLERATION 0.003f
-#define PLAYER_HIT_RADIUS 25
+#define PLAYER_HIT_RADIUS 20
 #define PLAYER_SIZE 40
+#define PLAYER_MAX_HEALTH 5
 
 #define BULLETS_BUFFER_SIZE 200
 #define BULLET_SPEED 1.0f
@@ -42,6 +40,8 @@ scene game_scene;
 
 #define OVERLAY_WINDOW_WIDTH 800
 #define OVERLAY_WINDOW_HEIGHT 500
+
+#define IN_GAME_FONT_SIZE 25
 
 #define SOUND_VOLUME 0.5f
 
@@ -79,10 +79,12 @@ Vector2 virtual_mouse_pos = { 0 };
 Texture2D player_texture = { 0 };
 Vector2 player_pos = { 0.0f, 0.0f };
 Vector2 player_dir = { 0.0f, 0.0f };
+int player_health = PLAYER_MAX_HEALTH;
 float player_speed = 0.0f;
 bool game_over = false;
 bool game_pause = false;
 static bool game_exit = false;
+bool player_border_touch = false;
 
 // Timer
 double shoot_start_time;
@@ -133,6 +135,7 @@ void reset_state(void) {
 	player_pos = (Vector2){ 0.0f, 0.0f };
 	player_dir = (Vector2){ 0.0f, 0.0f };
 	player_speed = 0.0f;
+	player_health = PLAYER_MAX_HEALTH;
 	game_over = false;
 	game_pause = false;
 
@@ -188,6 +191,7 @@ bool is_shoot(void) {
 }
 
 void set_game_over(void) {
+	player_health = 0;
 	game_over = true;
 	PlaySound(game_over_sound);
 }
@@ -213,8 +217,8 @@ void draw_and_update_enemies(float delta) {
 					enemy_buffer[i].dir.x = Lerp(enemy_buffer[i].dir.x, player_pos.x, delta * 0.002);
 					enemy_buffer[i].dir.y = Lerp(enemy_buffer[i].dir.y, player_pos.y, delta * 0.002);
 
-					if (((GetTime() - shoot_start_time) >  0.1)) {
-						shoot_start_time = GetTime();
+					if (((GetTime() - enemy_buffer[i].shoot_start_time) >  0.1)) {
+						enemy_buffer[i].shoot_start_time = GetTime();
 						PlaySound(enemy_shoot_sound);
 						bullet_buffer[current_bullet_buffer].enemy = true;
 						bullet_buffer[current_bullet_buffer].visible = true;
@@ -325,9 +329,11 @@ void draw_and_update_player(float delta) {
 		float distance = Vector2Distance((Vector2){ 0.0f, 0.0f}, player_pos);
 
 		if (distance > GAME_BORDER_RADIUS) {
-			DrawText("Don't Cross the border", player_pos.x, player_pos.y - 40.0f, 20, RED);
+			player_border_touch = true;
 			Vector2 origin_to_player = Vector2Normalize(Vector2Subtract(player_pos, (Vector2){0.0f,0.0f}));
 			player_pos = Vector2Scale(origin_to_player, GAME_BORDER_RADIUS);
+		} else {
+			player_border_touch = false;
 		}
 
 		// Check astroid collision
@@ -341,7 +347,7 @@ void draw_and_update_player(float delta) {
 		for (int i = 0; i < BULLETS_BUFFER_SIZE; i++) {
 			if (CheckCollisionCircles(bullet_buffer[i].pos, BULLET_SIZE, player_pos, PLAYER_HIT_RADIUS) && !game_over) {
 				if (bullet_buffer[i].visible && bullet_buffer[i].enemy)
-					set_game_over();
+					player_health--;
 			}
 		}
 
@@ -461,6 +467,18 @@ void draw_game_pause() {
 	update_and_draw_button(&buttons[1], virtual_mouse_pos, (Vector2){ RENDER_WIDTH, RENDER_HEIGHT });
 }
 
+void draw_health(void) {
+	Vector2 pos = { 10.0f, 20.0f };
+	for (int i = 0; i < player_health; i++) {
+		pos.x = (40.0f * i) + 20;
+		DrawRectangleV(pos, (Vector2){ 30.0f, 10.0f }, WHITE);
+	}
+}
+
+void draw_enemies_left(void) {
+
+}
+
 static void retry(void) {
 	reset_state();
 }
@@ -547,12 +565,24 @@ static void on_scene_update(void(*change_scene)(scene *scn), bool *should_exit, 
 
 		EndMode2D();
 
+		if (player_border_touch) {
+			DrawText("Don't Cross the border", RENDER_WIDTH/2, RENDER_HEIGHT/2 - 70.0f, IN_GAME_FONT_SIZE, RED);
+		}
+
 		if (game_over) {
-			DrawText("Man, You suck!", 20, RENDER_HEIGHT - 40, 20, RED);
+			char *game_over_message = "Man, You suck!";
+			DrawText(game_over_message, (RENDER_WIDTH/2) - (MeasureText(game_over_message, IN_GAME_FONT_SIZE)/2), 20, IN_GAME_FONT_SIZE, RED);
 			draw_game_over();
 		} else {
-			DrawText("Destory enemies and avoid astroids", 20, RENDER_HEIGHT - 40, 20, RED);
+			char *game_hint = "Destory enemies and avoid astroids";
+			DrawText(game_hint, (RENDER_WIDTH/2) - (MeasureText(game_hint, IN_GAME_FONT_SIZE)/2), 20, IN_GAME_FONT_SIZE, RED);
 		}
+		
+		if (!player_health && !game_over) {
+			set_game_over();
+		}
+
+		draw_health();
 
 		if (game_pause) {
 			draw_game_pause();
@@ -560,6 +590,11 @@ static void on_scene_update(void(*change_scene)(scene *scn), bool *should_exit, 
 
 		// Draw cursor
 		DrawCircle(virtual_mouse_pos.x, virtual_mouse_pos.y, 2, WHITE);
+
+		if (show_debug_info) {
+			const char *fps_output = TextFormat("FPS: %i", GetFPS());
+			DrawText(fps_output, RENDER_WIDTH - MeasureText(fps_output, IN_GAME_FONT_SIZE) - 20 , RENDER_HEIGHT - 40, IN_GAME_FONT_SIZE, RED);
+		}
 	EndTextureMode();
 
 	BeginDrawing();
@@ -579,10 +614,6 @@ static void on_scene_update(void(*change_scene)(scene *scn), bool *should_exit, 
 			0.0f,
 			WHITE
 		);
-
-		if (show_debug_info) {
-			DrawText(FormatText("FPS: %i", GetFPS()), 10, 10, 20, RED);
-		}
 		
     EndDrawing();
 
