@@ -11,8 +11,11 @@ scene game_scene;
 #define min(a, b) ((a)<(b)? (a) : (b))
 #define rand_range(a, b) (rand() % (b + 1 - a) + a)
 
-#define RENDER_WIDTH 1920
-#define RENDER_HEIGHT 1080
+// #define RENDER_WIDTH 1920
+// #define RENDER_HEIGHT 1080
+
+#define RENDER_WIDTH 1366
+#define RENDER_HEIGHT 768
 
 #define PLAYER_MAX_SPEED 0.4f
 #define PLAYER_ACCLERATION 0.009f
@@ -39,6 +42,8 @@ scene game_scene;
 
 #define OVERLAY_WINDOW_WIDTH 800
 #define OVERLAY_WINDOW_HEIGHT 500
+
+#define SOUND_VOLUME 0.5f
 
 typedef struct bullet {
 	Vector2 pos;
@@ -89,7 +94,7 @@ Camera2D camera = {
 	.target = (Vector2) { 0.0f ,0.0f },
 	.offset = (Vector2){ (float)RENDER_WIDTH/2 ,(float) RENDER_HEIGHT/2 },
 	.rotation = 0.0f,
-	.zoom = 1.25f,
+	.zoom = 1.0f,
 };
 
 // Buttons
@@ -97,6 +102,20 @@ button buttons[2];
 
 // State
 bool show_debug_info = false;
+
+// Music
+Sound shoot_sound = { 0 };
+Sound enemy_shoot_sound = { 0 };
+Sound game_over_sound = { 0 };
+
+void load_sounds(void) {
+	shoot_sound = LoadSound(ASSETS_PATH"shoot.wav");
+	SetSoundVolume(shoot_sound, SOUND_VOLUME);
+	enemy_shoot_sound = LoadSound(ASSETS_PATH"enemy_shoot.wav");
+	SetSoundVolume(enemy_shoot_sound, SOUND_VOLUME);
+	game_over_sound = LoadSound(ASSETS_PATH"game_over.wav");
+	SetSoundVolume(game_over_sound, SOUND_VOLUME);
+}
 
 Vector2 clamp_value(Vector2 value, Vector2 min, Vector2 max)
 {
@@ -166,6 +185,11 @@ bool is_shoot(void) {
 	return result;
 }
 
+void set_game_over(void) {
+	game_over = true;
+	PlaySound(game_over_sound);
+}
+
 void update_camera(void) {
 	camera.target = player_pos;
 }
@@ -183,6 +207,8 @@ void draw_and_update_enemies(float delta) {
 			if (!game_pause) {
 				// Move the gun and shoot when player comes closer
 				if (Vector2Distance(player_pos, enemy_buffer[i].pos) < ENEMY_RADAR_RANGE && !game_over) {
+					PlaySound(enemy_shoot_sound);
+
 					enemy_buffer[i].dir.x = Lerp(enemy_buffer[i].dir.x, player_pos.x, delta * 0.002);
 					enemy_buffer[i].dir.y = Lerp(enemy_buffer[i].dir.y, player_pos.y, delta * 0.002);
 
@@ -199,8 +225,8 @@ void draw_and_update_enemies(float delta) {
 				} 
 
 				// Check player collision
-				if (CheckCollisionCircles(enemy_buffer[i].pos, ENEMY_HIT_RANGE, player_pos, PLAYER_HIT_RADIUS)) {
-					game_over = true;
+				if (CheckCollisionCircles(enemy_buffer[i].pos, ENEMY_HIT_RANGE, player_pos, PLAYER_HIT_RADIUS) && !game_over) {
+					set_game_over();
 				}
 
 				// Check Player Bullet collision
@@ -301,21 +327,22 @@ void draw_and_update_player(float delta) {
 
 		// Check astroid collision
 		for (int i = 0; i < ASTROIDS_BUFFER_SIZE; i++) {
-			if (CheckCollisionCircles(astroid_buffer[i].pos, ASTROID_SIZE, player_pos, PLAYER_HIT_RADIUS)) {
-				game_over = true;
+			if (CheckCollisionCircles(astroid_buffer[i].pos, ASTROID_SIZE, player_pos, PLAYER_HIT_RADIUS) && !game_over) {
+				set_game_over();
 			}
 		}
 
 		// Check bullet collision
 		for (int i = 0; i < BULLETS_BUFFER_SIZE; i++) {
-			if (CheckCollisionCircles(bullet_buffer[i].pos, BULLET_SIZE, player_pos, PLAYER_HIT_RADIUS)) {
+			if (CheckCollisionCircles(bullet_buffer[i].pos, BULLET_SIZE, player_pos, PLAYER_HIT_RADIUS) && !game_over) {
 				if (bullet_buffer[i].visible && bullet_buffer[i].enemy)
-					game_over = true;
+					set_game_over();
 			}
 		}
 
 		// Handle shoot logic
 		if (is_shoot() && ((GetTime() - shoot_start_time) >  0.2) && !game_over) {
+			PlaySound(shoot_sound);
 			bullet_buffer[current_bullet_buffer].enemy = false;
 			bullet_buffer[current_bullet_buffer].visible = true;
 			bullet_buffer[current_bullet_buffer].pos = player_pos;
@@ -448,9 +475,11 @@ void handle_input(void) {
 static void on_scene_load(void) {
 	HideCursor();
 
+	load_sounds();
+
 	// Render texture initialization, used to hold the rendering result so we can easily resize it
 	render_texture = LoadRenderTexture(RENDER_WIDTH, RENDER_HEIGHT);
-	SetTextureFilter(render_texture.texture, FILTER_BILINEAR);
+	SetTextureFilter(render_texture.texture, FILTER_TRILINEAR);
 
 	player_texture = LoadTexture(ASSETS_PATH"player.png");
 
@@ -475,6 +504,7 @@ static void on_scene_load(void) {
 }
 
 static void on_scene_update(void(*change_scene)(scene *scn), bool *should_exit, float delta) {
+	//UpdateMusicStream(shoot_sound);
 
 	if (game_exit) {
 		*should_exit = true;

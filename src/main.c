@@ -21,6 +21,7 @@ int main(void) {
     SetWindowState(FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "raylib [core] example - basic window");
     SetWindowState(FLAG_WINDOW_RESIZABLE);
+    InitAudioDevice();
    
     SetExitKey(0); // Do not exit on ESC key
 
