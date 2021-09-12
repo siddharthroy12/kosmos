@@ -4,6 +4,10 @@
 #include "../utils/button.h"
 #include "raylib.h"
 
+#ifndef GAME_VERSION
+#define GAME_VERSION "N/A"
+#endif
+
 #define TITLE_FONT_SIZE 80
 
 // Actions
@@ -18,6 +22,17 @@ Vector2 mouse_pos;
 void draw_title(Vector2 pos, char* title) {
 	float width = MeasureText(title, TITLE_FONT_SIZE);
 	DrawText(title, pos.x - (width /2), pos.y - (TITLE_FONT_SIZE /2), TITLE_FONT_SIZE, BLUE);
+}
+
+void draw_version(void) {
+	char *text = "Ver: "GAME_VERSION;
+	int width = MeasureText(text, 20);
+	DrawText(text, GetScreenWidth() - width - 20, GetScreenHeight() - 40, 20, BLUE);
+}
+
+void draw_credit(void) {
+	char *text = "@Siddharth_Roy12";
+	DrawText(text, 20, GetScreenHeight() - 40, 20, BLUE);
 }
 
 static void exit_game(void) {
@@ -65,6 +80,8 @@ static void on_scene_update(void(*change_scene)(scene *scn), bool *should_exit, 
 
 	update_and_draw_buttons(buttons, 2, GetMousePosition(),  (Vector2){ GetScreenWidth(), GetScreenHeight() });
 
+	draw_version();
+	draw_credit();
 	EndDrawing();
 
 

@@ -12,5 +12,7 @@ file(GLOB_RECURSE APP_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/*.c)
 add_executable(${CMAKE_PROJECT_NAME} ${APP_SOURCES})
 target_link_libraries(${CMAKE_PROJECT_NAME} raylib)
 
+target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC GAME_VERSION="1.0-DEV")
+
 target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC ASSETS_PATH="${CMAKE_CURRENT_SOURCE_DIR}/assets/") # Set the asset path macro to the absolute path on the dev machine
 #target_compile_definitions(${CMAKE_PROJECT_NAME} PUBLIC ASSETS_PATH="assets/") # Set the asset path macro in release more

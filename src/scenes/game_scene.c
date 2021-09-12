@@ -110,6 +110,8 @@ bool show_debug_info = false;
 Sound shoot_sound = { 0 };
 Sound enemy_shoot_sound = { 0 };
 Sound game_over_sound = { 0 };
+Sound enemy_damage_sound = { 0 };
+Sound player_damage_sound = { 0 };
 
 void load_sounds(void) {
 	shoot_sound = LoadSound(ASSETS_PATH"shoot.wav");
@@ -118,6 +120,10 @@ void load_sounds(void) {
 	SetSoundVolume(enemy_shoot_sound, SOUND_VOLUME);
 	game_over_sound = LoadSound(ASSETS_PATH"game_over.wav");
 	SetSoundVolume(game_over_sound, SOUND_VOLUME);
+	enemy_damage_sound = LoadSound(ASSETS_PATH"enemy_damage.wav");
+	SetSoundVolume(enemy_damage_sound, SOUND_VOLUME);
+	player_damage_sound = LoadSound(ASSETS_PATH"player_damage.wav");
+	SetSoundVolume(player_damage_sound, SOUND_VOLUME);
 }
 
 Vector2 clamp_value(Vector2 value, Vector2 min, Vector2 max)
@@ -242,6 +248,7 @@ void draw_and_update_enemies(float delta) {
 				for (int j = 0; j < BULLETS_BUFFER_SIZE; j++) {
 					if (CheckCollisionCircles(enemy_buffer[i].pos, ENEMY_HIT_RANGE, bullet_buffer[j].pos, BULLET_SIZE)) {
 						if (bullet_buffer[j].visible && !bullet_buffer[j].enemy) {
+							PlaySound(enemy_damage_sound);
 							enemy_buffer[i].health--;
 							bullet_buffer[j].visible = false;
 						}
@@ -346,8 +353,10 @@ void draw_and_update_player(float delta) {
 		// Check bullet collision
 		for (int i = 0; i < BULLETS_BUFFER_SIZE; i++) {
 			if (CheckCollisionCircles(bullet_buffer[i].pos, BULLET_SIZE, player_pos, PLAYER_HIT_RADIUS) && !game_over) {
-				if (bullet_buffer[i].visible && bullet_buffer[i].enemy)
+				if (bullet_buffer[i].visible && bullet_buffer[i].enemy) {
+					PlaySound(player_damage_sound);
 					player_health--;
+				}
 			}
 		}
 
@@ -471,12 +480,27 @@ void draw_health(void) {
 	Vector2 pos = { 10.0f, 20.0f };
 	for (int i = 0; i < player_health; i++) {
 		pos.x = (40.0f * i) + 20;
-		DrawRectangleV(pos, (Vector2){ 30.0f, 10.0f }, WHITE);
+		DrawRectangleV(pos, (Vector2){ 30.0f, 10.0f }, GREEN);
 	}
 }
 
 void draw_enemies_left(void) {
+	int left = 0;
 
+	for (int i = 0; i < ENEMIES_BUFFER_SIZE; i++) {
+		if (enemy_buffer[i].health > 0) {
+			left++;
+		}
+	}
+
+	float left_offset = (RENDER_WIDTH/2) - ((left * 40.0f)/2);
+
+	Vector2 pos = { 10.0f , 60.0f };
+
+	for (int i = 0; i < left; i++) {
+		pos.x = (40.0f * i) + left_offset;
+		DrawRectangleV(pos, (Vector2){ 30.0f, 10.0f }, RED);
+	}
 }
 
 static void retry(void) {
@@ -583,6 +607,7 @@ static void on_scene_update(void(*change_scene)(scene *scn), bool *should_exit, 
 		}
 
 		draw_health();
+		draw_enemies_left();
 
 		if (game_pause) {
 			draw_game_pause();
