@@ -10,8 +10,10 @@
 !assets/
 !libs/
 !src/
+!preview/
 
 # Allow the contents of these folders
 !assets/**
 !libs/**
 !src/**
+!preview/**

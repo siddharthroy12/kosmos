@@ -1,6 +1,8 @@
 ## Kosmos
 
-> **NOTE:** Still is development
+A bullet-hell shooter game made in C99 for my college project.
+
+![Gameplay](./preview/gameplay.gif)
 
 ## Building
 ```bash
@@ -10,7 +12,7 @@ cmake .. # or cmake .. -G "MinGW Makefiles" for windows with mingw
 cmake --build .
 ```
 
-## Cross Compilation From Linux to Windows
+## Building From Linux to Windows
 ```bash
 mkdir build
 cd build
