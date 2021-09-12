@@ -102,7 +102,7 @@ Camera2D camera = {
 };
 
 // Buttons
-button buttons[2];
+static button buttons[2];
 
 // State
 bool show_debug_info = false;

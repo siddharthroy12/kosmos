@@ -12,25 +12,25 @@
 
 // Actions
 static bool game_exit = false;
-bool start_game_pressed = false;
+static bool start_game_pressed = false;
 // Buttons
-button buttons[2] = { 0 };
+static button buttons[2] = { 0 };
 
 // Mouse
 Vector2 mouse_pos;
 
-void draw_title(Vector2 pos, char* title) {
+static void draw_title(Vector2 pos, char* title) {
 	float width = MeasureText(title, TITLE_FONT_SIZE);
 	DrawText(title, pos.x - (width /2), pos.y - (TITLE_FONT_SIZE /2), TITLE_FONT_SIZE, BLUE);
 }
 
-void draw_version(void) {
+static void draw_version(void) {
 	char *text = "Ver: "GAME_VERSION;
 	int width = MeasureText(text, 20);
 	DrawText(text, GetScreenWidth() - width - 20, GetScreenHeight() - 40, 20, BLUE);
 }
 
-void draw_credit(void) {
+static void draw_credit(void) {
 	char *text = "@Siddharth_Roy12";
 	DrawText(text, 20, GetScreenHeight() - 40, 20, BLUE);
 }
