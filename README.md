@@ -59,3 +59,16 @@ cmake --build .
 
 # kosmos.exe should appear in the build folder
 ```
+
+### MacOS
+```bash
+mkdir build
+
+cd build
+
+cmake ..
+
+cmake --build .
+
+./kosmos
+```
