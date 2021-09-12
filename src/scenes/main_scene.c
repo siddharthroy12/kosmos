@@ -74,6 +74,7 @@ static void event_handle(void) {
 
 static void on_scene_update(void(*change_scene)(scene *scn), bool *should_exit,  float delta) {
 	BeginDrawing();
+	
 	ClearBackground((Color){18, 18, 18, 255});
 
 	draw_title((Vector2){ GetScreenWidth()/ 2, (GetScreenHeight()/2) - 100 }, "Kosmos");
@@ -98,7 +99,6 @@ static void on_scene_update(void(*change_scene)(scene *scn), bool *should_exit, 
 
 
 static void on_scene_exit(void) {
-	printf("Main exit\n");
 }
 
 const scene main_scene = {

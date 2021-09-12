@@ -71,6 +71,7 @@ bullet bullet_buffer[BULLETS_BUFFER_SIZE] = { 0 };
 int current_bullet_buffer = 0;
 
 enemy enemy_buffer[ENEMIES_BUFFER_SIZE] = { 0 };
+int enemies_left = ENEMIES_BUFFER_SIZE;
 
 // Mouse
 Vector2 virtual_mouse_pos = { 0 };
@@ -142,6 +143,7 @@ void reset_state(void) {
 	player_dir = (Vector2){ 0.0f, 0.0f };
 	player_speed = 0.0f;
 	player_health = PLAYER_MAX_HEALTH;
+	enemies_left = ENEMIES_BUFFER_SIZE;
 	game_over = false;
 	game_pause = false;
 
@@ -197,9 +199,11 @@ bool is_shoot(void) {
 }
 
 void set_game_over(void) {
-	player_health = 0;
-	game_over = true;
-	PlaySound(game_over_sound);
+	if (enemies_left) {
+		player_health = 0;
+		game_over = true;
+		PlaySound(game_over_sound);
+	}
 }
 
 void update_camera(void) {
@@ -250,6 +254,9 @@ void draw_and_update_enemies(float delta) {
 						if (bullet_buffer[j].visible && !bullet_buffer[j].enemy) {
 							PlaySound(enemy_damage_sound);
 							enemy_buffer[i].health--;
+							if (!enemy_buffer[i].health) {
+								enemies_left--;
+							}
 							bullet_buffer[j].visible = false;
 						}
 						
@@ -446,14 +453,18 @@ void draw_window(Color color) {
 	DrawRectangleLinesEx(rec, 3, color);
 }
 
-void draw_game_over(void) {
+void draw_game_over(bool win) {
 	draw_window(BLUE);
 
-	char *text = "GAME OVER";
-	int pos_x = (RENDER_WIDTH/2) - (MeasureTextEx(GetFontDefault(), text, 50, 20).x/2);
+	char *over_text = "GAME OVER";
+	char *win_text = "YOU WIN";
+
+	char *current_text = win ? win_text : over_text; 
+
+	int pos_x = (RENDER_WIDTH/2) - (MeasureTextEx(GetFontDefault(), current_text, 50, 20).x/2);
 	int pos_y = (RENDER_HEIGHT/2) - 150;
 
-	DrawText(text, pos_x, pos_y, 70, RED);
+	DrawText(current_text, pos_x, pos_y, 70, RED);
 
 	update_and_draw_button(&buttons[0], virtual_mouse_pos, (Vector2){ RENDER_WIDTH, RENDER_HEIGHT });
 	update_and_draw_button(&buttons[1], virtual_mouse_pos, (Vector2){ RENDER_WIDTH, RENDER_HEIGHT });
@@ -485,19 +496,11 @@ void draw_health(void) {
 }
 
 void draw_enemies_left(void) {
-	int left = 0;
-
-	for (int i = 0; i < ENEMIES_BUFFER_SIZE; i++) {
-		if (enemy_buffer[i].health > 0) {
-			left++;
-		}
-	}
-
-	float left_offset = (RENDER_WIDTH/2) - ((left * 40.0f)/2);
+	float left_offset = (RENDER_WIDTH/2) - ((enemies_left * 40.0f)/2);
 
 	Vector2 pos = { 10.0f , 60.0f };
 
-	for (int i = 0; i < left; i++) {
+	for (int i = 0; i < enemies_left; i++) {
 		pos.x = (40.0f * i) + left_offset;
 		DrawRectangleV(pos, (Vector2){ 30.0f, 10.0f }, RED);
 	}
@@ -596,10 +599,14 @@ static void on_scene_update(void(*change_scene)(scene *scn), bool *should_exit, 
 		if (game_over) {
 			char *game_over_message = "Man, You suck!";
 			DrawText(game_over_message, (RENDER_WIDTH/2) - (MeasureText(game_over_message, IN_GAME_FONT_SIZE)/2), 20, IN_GAME_FONT_SIZE, RED);
-			draw_game_over();
+			draw_game_over(false);
 		} else {
 			char *game_hint = "Destory enemies and avoid astroids";
 			DrawText(game_hint, (RENDER_WIDTH/2) - (MeasureText(game_hint, IN_GAME_FONT_SIZE)/2), 20, IN_GAME_FONT_SIZE, RED);
+		}
+
+		if (!enemies_left) {
+			draw_game_over(true);
 		}
 		
 		if (!player_health && !game_over) {
@@ -647,7 +654,6 @@ static void on_scene_update(void(*change_scene)(scene *scn), bool *should_exit, 
 }
 
 static void on_scene_exit(void) {
-	printf("game Scene exit\n");
 }
 
 scene game_scene = {

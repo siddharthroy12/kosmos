@@ -18,10 +18,12 @@ static void change_scene(scene *scn) {
 }
 
 int main(void) {
+    SetTraceLogLevel(LOG_NONE);
     SetWindowState(FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Kosmos");
     SetWindowState(FLAG_WINDOW_RESIZABLE);
     InitAudioDevice();
+    
    
     SetExitKey(0); // Do not exit on ESC key
 
