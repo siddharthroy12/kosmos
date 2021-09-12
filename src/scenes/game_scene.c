@@ -65,36 +65,36 @@ typedef struct enemy {
 	double shoot_start_time;
 } enemy;
 
-astroid astroid_buffer[ASTROIDS_BUFFER_SIZE] = { 0 };
+static astroid astroid_buffer[ASTROIDS_BUFFER_SIZE] = { 0 };
 
-bullet bullet_buffer[BULLETS_BUFFER_SIZE] = { 0 };
-int current_bullet_buffer = 0;
+static bullet bullet_buffer[BULLETS_BUFFER_SIZE] = { 0 };
+static int current_bullet_buffer = 0;
 
-enemy enemy_buffer[ENEMIES_BUFFER_SIZE] = { 0 };
-int enemies_left = ENEMIES_BUFFER_SIZE;
+static enemy enemy_buffer[ENEMIES_BUFFER_SIZE] = { 0 };
+static int enemies_left = ENEMIES_BUFFER_SIZE;
 
 // Mouse
-Vector2 virtual_mouse_pos = { 0 };
+static Vector2 virtual_mouse_pos = { 0 };
 
 // Player
-Texture2D player_texture = { 0 };
-Vector2 player_pos = { 0.0f, 0.0f };
-Vector2 player_dir = { 0.0f, 0.0f };
-int player_health = PLAYER_MAX_HEALTH;
-float player_speed = 0.0f;
-bool game_over = false;
-bool game_pause = false;
+static Texture2D player_texture = { 0 };
+static Vector2 player_pos = { 0.0f, 0.0f };
+static Vector2 player_dir = { 0.0f, 0.0f };
+static int player_health = PLAYER_MAX_HEALTH;
+static float player_speed = 0.0f;
+static bool game_over = false;
+static bool game_pause = false;
 static bool game_exit = false;
-bool player_border_touch = false;
+static bool player_border_touch = false;
 
 // Timer
-double shoot_start_time;
+static double shoot_start_time;
 
 // Render Texture
-RenderTexture2D render_texture;
+static RenderTexture2D render_texture;
 
 // Camera
-Camera2D camera = {
+static Camera2D camera = {
 	.target = (Vector2) { 0.0f ,0.0f },
 	.offset = (Vector2){ (float)RENDER_WIDTH/2 ,(float) RENDER_HEIGHT/2 },
 	.rotation = 0.0f,
@@ -105,16 +105,16 @@ Camera2D camera = {
 static button buttons[2];
 
 // State
-bool show_debug_info = false;
+static bool show_debug_info = false;
 
 // Music
-Sound shoot_sound = { 0 };
-Sound enemy_shoot_sound = { 0 };
-Sound game_over_sound = { 0 };
-Sound enemy_damage_sound = { 0 };
-Sound player_damage_sound = { 0 };
+static Sound shoot_sound = { 0 };
+static Sound enemy_shoot_sound = { 0 };
+static Sound game_over_sound = { 0 };
+static Sound enemy_damage_sound = { 0 };
+static Sound player_damage_sound = { 0 };
 
-void load_sounds(void) {
+static void load_sounds(void) {
 	shoot_sound = LoadSound(ASSETS_PATH"shoot.wav");
 	SetSoundVolume(shoot_sound, SOUND_VOLUME);
 	enemy_shoot_sound = LoadSound(ASSETS_PATH"enemy_shoot.wav");
@@ -127,7 +127,7 @@ void load_sounds(void) {
 	SetSoundVolume(player_damage_sound, SOUND_VOLUME);
 }
 
-Vector2 clamp_value(Vector2 value, Vector2 min, Vector2 max)
+static Vector2 clamp_value(Vector2 value, Vector2 min, Vector2 max)
 {
     Vector2 result = value;
     result.x = (result.x > max.x)? max.x : result.x;
@@ -137,7 +137,7 @@ Vector2 clamp_value(Vector2 value, Vector2 min, Vector2 max)
     return result;
 }
 
-void reset_state(void) {
+static void reset_state(void) {
 	current_bullet_buffer = 0;
 	player_pos = (Vector2){ 0.0f, 0.0f };
 	player_dir = (Vector2){ 0.0f, 0.0f };
@@ -178,7 +178,7 @@ void reset_state(void) {
 }
 
 // Action functions
-bool is_accelerate(void) {
+static bool is_accelerate(void) {
 	bool result = false;
 
 	if (IsKeyDown(KEY_SPACE) || IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) {
@@ -188,7 +188,7 @@ bool is_accelerate(void) {
 	return result;
 }
 
-bool is_shoot(void) {
+static bool is_shoot(void) {
 	bool result = false;
 
 	if (IsKeyDown(KEY_W) || IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
@@ -198,7 +198,7 @@ bool is_shoot(void) {
 	return result;
 }
 
-void set_game_over(void) {
+static void set_game_over(void) {
 	if (enemies_left) {
 		player_health = 0;
 		game_over = true;
@@ -206,11 +206,11 @@ void set_game_over(void) {
 	}
 }
 
-void update_camera(void) {
+static void update_camera(void) {
 	camera.target = player_pos;
 }
 
-void draw_and_update_enemies(float delta) {
+static void draw_and_update_enemies(float delta) {
 	Vector2 end_point = { 0 };
 	for (int i = 0; i < ENEMIES_BUFFER_SIZE; i++) {
 		if (enemy_buffer[i].health > 0) {
@@ -290,7 +290,7 @@ void draw_and_update_enemies(float delta) {
 	}
 }
 
-void draw_and_update_player(float delta) {
+static void draw_and_update_player(float delta) {
 	Vector2 world_mouse_pos = GetScreenToWorld2D(virtual_mouse_pos, camera);
 	float rotation = Vector2Angle(player_pos, world_mouse_pos) + 90.0f;
 
@@ -393,7 +393,7 @@ void draw_and_update_player(float delta) {
 	//rf_draw_circle_lines(player_pos.x ,player_pos.y, PLAYER_HIT_RADIUS, RF_GREEN);
 }
 
-void draw_and_update_bullets(float delta) {
+static void draw_and_update_bullets(float delta) {
 	for (int i = 0; i < BULLETS_BUFFER_SIZE; i++) {
 		if (bullet_buffer[i].visible) {
 			DrawCircle(bullet_buffer[i].pos.x, bullet_buffer[i].pos.y, BULLET_SIZE, YELLOW);
@@ -415,7 +415,7 @@ void draw_and_update_bullets(float delta) {
 	}
 }
 
-void draw_and_update_astroids(float delta) {
+static void draw_and_update_astroids(float delta) {
 	for (int i = 0; i < ASTROIDS_BUFFER_SIZE; i++) {
 		astroid_buffer[i].pos = Vector2Add(astroid_buffer[i].pos, (Vector2){
 			.x = -(astroid_buffer[i].dir.x * ASTROID_SPEED * delta),
@@ -437,7 +437,7 @@ void draw_and_update_astroids(float delta) {
 	}
 }
 
-void draw_window(Color color) {
+static void draw_window(Color color) {
 	Rectangle rec = {
 		.x = (RENDER_WIDTH/2) - (OVERLAY_WINDOW_WIDTH/2),
 		.y = (RENDER_HEIGHT/2) - (OVERLAY_WINDOW_HEIGHT/2),
@@ -453,7 +453,7 @@ void draw_window(Color color) {
 	DrawRectangleLinesEx(rec, 3, color);
 }
 
-void draw_game_over(bool win) {
+static void draw_game_over(bool win) {
 	draw_window(BLUE);
 
 	char *over_text = "GAME OVER";
@@ -470,7 +470,7 @@ void draw_game_over(bool win) {
 	update_and_draw_button(&buttons[1], virtual_mouse_pos, (Vector2){ RENDER_WIDTH, RENDER_HEIGHT });
 }
 
-void draw_game_pause() {
+static void draw_game_pause() {
 	draw_window(GREEN);
 
 	char *text = "GAME PAUSED";
@@ -487,7 +487,7 @@ void draw_game_pause() {
 	update_and_draw_button(&buttons[1], virtual_mouse_pos, (Vector2){ RENDER_WIDTH, RENDER_HEIGHT });
 }
 
-void draw_health(void) {
+static void draw_health(void) {
 	Vector2 pos = { 10.0f, 20.0f };
 	for (int i = 0; i < player_health; i++) {
 		pos.x = (40.0f * i) + 20;
@@ -495,7 +495,7 @@ void draw_health(void) {
 	}
 }
 
-void draw_enemies_left(void) {
+static void draw_enemies_left(void) {
 	float left_offset = (RENDER_WIDTH/2) - ((enemies_left * 40.0f)/2);
 
 	Vector2 pos = { 10.0f , 60.0f };
@@ -515,7 +515,7 @@ static void exit_game(void) {
 }
 
 
-void handle_input(void) {
+static void handle_input(void) {
 	if (IsKeyPressed(KEY_ESCAPE)) {
 		if (!game_over)
 			game_pause = !game_pause;
