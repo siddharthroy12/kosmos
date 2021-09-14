@@ -20,6 +20,7 @@ scene game_scene;
 #define PLAYER_HIT_RADIUS 20
 #define PLAYER_SIZE 40
 #define PLAYER_MAX_HEALTH 5
+#define PLAYER_SHIELD_RAD 60
 
 #define BULLETS_BUFFER_SIZE 200
 #define BULLET_SPEED 1.0f
@@ -82,6 +83,7 @@ static Vector2 player_pos = { 0.0f, 0.0f };
 static Vector2 player_dir = { 0.0f, 0.0f };
 static int player_health = PLAYER_MAX_HEALTH;
 static float player_speed = 0.0f;
+static float player_shield_on = true;
 static bool game_over = false;
 static bool game_pause = false;
 static bool game_exit = false;
@@ -89,6 +91,7 @@ static bool player_border_touch = false;
 
 // Timer
 static double shoot_start_time;
+static double player_sheild_start_time;
 
 // Render Texture
 static RenderTexture2D render_texture;
@@ -243,9 +246,17 @@ static void draw_and_update_enemies(float delta) {
 					}
 				} 
 
-				// Check player collision
+				// Check player to enemy collision
 				if (CheckCollisionCircles(enemy_buffer[i].pos, ENEMY_HIT_RANGE, player_pos, PLAYER_HIT_RADIUS) && !game_over) {
-					set_game_over();
+					if (player_shield_on) {
+						Vector2 direction_to_move = Vector2Normalize(Vector2Subtract(player_pos, enemy_buffer[i].pos));
+						printf("Before: X: %f Y: %f\n", direction_to_move.x, direction_to_move.y);
+						player_pos = Vector2Add(enemy_buffer[i].pos, Vector2Scale(direction_to_move, ENEMY_HIT_RANGE + PLAYER_HIT_RADIUS));
+						printf("After: X: %f Y: %f\n", player_pos.x, player_pos.y);
+					} else {
+						set_game_over();
+					}
+					
 				}
 
 				// Check Player Bullet collision
@@ -294,7 +305,15 @@ static void draw_and_update_player(float delta) {
 	Vector2 world_mouse_pos = GetScreenToWorld2D(virtual_mouse_pos, camera);
 	float rotation = Vector2Angle(player_pos, world_mouse_pos) + 90.0f;
 
-	// Draw player sprite
+	// Draw player
+	Color green_background = LIME;
+	green_background.a = 100;
+
+	if (player_shield_on) {
+		DrawCircle(player_pos.x, player_pos.y, PLAYER_SHIELD_RAD, green_background);
+		DrawRing((Vector2){ player_pos.x, player_pos.y}, PLAYER_SHIELD_RAD, PLAYER_SHIELD_RAD + 3, 0, 360, 100, LIME);
+	}
+
 	DrawTexturePro(
 		player_texture,
 		(Rectangle){
@@ -409,6 +428,15 @@ static void draw_and_update_bullets(float delta) {
 				if (CheckCollisionCircles(bullet_buffer[i].pos, BULLET_SIZE, astroid_buffer[j].pos, ASTROID_SIZE)) {
 					bullet_buffer[i].visible = false;
 				}
+			}
+
+			if (
+				CheckCollisionCircles(bullet_buffer[i].pos, BULLET_SIZE, player_pos, PLAYER_SHIELD_RAD) &&
+				player_shield_on &&
+				bullet_buffer[i].enemy &&
+				bullet_buffer[i].visible
+			) {
+				bullet_buffer[i].visible = false;
 			}
 		}
 		

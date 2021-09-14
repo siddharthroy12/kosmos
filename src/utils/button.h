@@ -58,7 +58,7 @@ static void update_and_draw_button(button *button, Vector2 mouse_pos, Vector2 si
 		draw_button(*button, true, size);
 	}
 
-	if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+	if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
 		if (CheckCollisionPointRec(mouse_pos, button_rec)) {
 			button->on_click();
 		}
