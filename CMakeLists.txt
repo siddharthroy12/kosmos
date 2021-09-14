@@ -6,6 +6,8 @@ set(CMAKE_C_STANDARD 99)
 # Setting parameters for raylib
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE) # don't build the supplied examples
 set(BUILD_GAMES    OFF CACHE BOOL "" FORCE) # or games
+set(GRAPHICS GRAPHICS_API_OPENGL_12 CACHE BOOL "" FORCE) # use opengl 1.2
+
 add_subdirectory(libs/raylib)
 
 file(GLOB_RECURSE APP_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/*.c)
