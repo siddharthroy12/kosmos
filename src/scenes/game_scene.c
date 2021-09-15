@@ -134,6 +134,7 @@ static Sound enemy_shoot_sound = { 0 };
 static Sound game_over_sound = { 0 };
 static Sound enemy_damage_sound = { 0 };
 static Sound player_damage_sound = { 0 };
+static Sound pickup_sound = { 0 };
 
 static void load_sounds(void) {
 	shoot_sound = LoadSound(ASSETS_PATH"shoot.wav");
@@ -146,6 +147,8 @@ static void load_sounds(void) {
 	SetSoundVolume(enemy_damage_sound, SOUND_VOLUME);
 	player_damage_sound = LoadSound(ASSETS_PATH"player_damage.wav");
 	SetSoundVolume(player_damage_sound, SOUND_VOLUME);
+	pickup_sound = LoadSound(ASSETS_PATH"pickup.wav");
+	SetSoundVolume(pickup_sound, SOUND_VOLUME);
 }
 
 static Vector2 clamp_value(Vector2 value, Vector2 min, Vector2 max) {
@@ -502,6 +505,7 @@ static void draw_and_update_pickups(void) {
 			DrawRing(health_pickups[i].pos, PICKUP_SIZE, PICKUP_SIZE + 3, 0, 360, 100, GREEN);
 
 			if (CheckCollisionCircles(health_pickups[i].pos, PICKUP_SIZE, player_pos, PLAYER_HIT_RADIUS)) {
+				PlaySound(pickup_sound);
 				health_pickups[i].shown = false;
 				if (player_health != PLAYER_MAX_HEALTH) {
 					player_health++;
@@ -520,6 +524,7 @@ static void draw_and_update_pickups(void) {
 		DrawRing(shield_pickup_pos, PICKUP_SIZE, PICKUP_SIZE + 3, 0, 360, 100, BLUE);
 
 		if (CheckCollisionCircles(shield_pickup_pos, PICKUP_SIZE, player_pos, PLAYER_HIT_RADIUS)) {
+			PlaySound(pickup_sound);
 			player_shield_start_time = GetTime();
 			player_shield_time = 5;
 			player_shield_on = true;
@@ -577,7 +582,7 @@ static void draw_game_over(bool win) {
 	int pos_x = (RENDER_WIDTH/2) - (MeasureTextEx(GetFontDefault(), current_text, 50, 20).x/2);
 	int pos_y = (RENDER_HEIGHT/2) - 150;
 
-	DrawText(current_text, pos_x, pos_y, 70, RED);
+	DrawText(current_text, pos_x, pos_y, 70, win ? GREEN : RED);
 
 	update_and_draw_button(&buttons[0], virtual_mouse_pos, (Vector2){ RENDER_WIDTH, RENDER_HEIGHT });
 	update_and_draw_button(&buttons[1], virtual_mouse_pos, (Vector2){ RENDER_WIDTH, RENDER_HEIGHT });
