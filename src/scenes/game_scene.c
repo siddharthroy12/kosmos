@@ -306,6 +306,10 @@ static void draw_and_update_enemies(float delta) {
 								spawn_shield_pickup();
 								health_pickups[current_health_pickup_buffer].pos = enemy_buffer[i].pos;
 								health_pickups[current_health_pickup_buffer].shown = true;
+								current_health_pickup_buffer++;
+								if (current_health_pickup_buffer == ENEMIES_BUFFER_SIZE) {
+									current_health_pickup_buffer = 0;
+								}
 							}
 							bullet_buffer[j].visible = false;
 						}
