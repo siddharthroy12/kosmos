@@ -22,9 +22,10 @@ static void change_scene(scene *scn) {
 int main(void) {
     SetTraceLogLevel(LOG_NONE);
     SetWindowState(FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
-    InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Kosmos");
+    InitWindow(GetMonitorWidth(0), GetMonitorHeight(0), "Kosmos");
     SetWindowState(FLAG_WINDOW_RESIZABLE);
     InitAudioDevice();
+    ToggleFullscreen();
 
     click_sound = LoadSound(ASSETS_PATH"click.wav");
    
