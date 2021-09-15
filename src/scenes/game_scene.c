@@ -32,10 +32,12 @@ scene game_scene;
 
 #define ENEMIES_BUFFER_SIZE 10
 #define ENEMY_MAX_HEALTH 10
-#define ENEMY_RADAR_RANGE 500
+#define ENEMY_RADAR_RANGE 800
 #define ENEMY_HIT_RANGE 50
 
-#define GAME_BORDER_RADIUS 2000
+#define PICKUP_SIZE 30
+
+#define GAME_BORDER_RADIUS 3000
 
 #define RENDER_DISTANCE 1500
 
@@ -89,9 +91,13 @@ static bool game_pause = false;
 static bool game_exit = false;
 static bool player_border_touch = false;
 
+// Pickups
+static Vector2 shield_pickup_pos = { 0 };
+static bool shield_pickup_show = false;
+
 // Timer
 static double shoot_start_time;
-static double player_sheild_start_time;
+static double player_shield_start_time;
 
 // Render Texture
 static RenderTexture2D render_texture;
@@ -130,8 +136,7 @@ static void load_sounds(void) {
 	SetSoundVolume(player_damage_sound, SOUND_VOLUME);
 }
 
-static Vector2 clamp_value(Vector2 value, Vector2 min, Vector2 max)
-{
+static Vector2 clamp_value(Vector2 value, Vector2 min, Vector2 max) {
     Vector2 result = value;
     result.x = (result.x > max.x)? max.x : result.x;
     result.x = (result.x < min.x)? min.x : result.x;
@@ -146,7 +151,10 @@ static void reset_state(void) {
 	player_dir = (Vector2){ 0.0f, 0.0f };
 	player_speed = 0.0f;
 	player_health = PLAYER_MAX_HEALTH;
+	player_shield_on = true;
+	player_shield_start_time = GetTime();
 	enemies_left = ENEMIES_BUFFER_SIZE;
+	shield_pickup_show = false;
 	game_over = false;
 	game_pause = false;
 
@@ -213,6 +221,16 @@ static void update_camera(void) {
 	camera.target = player_pos;
 }
 
+static void spawn_shield_pickup(void) {
+	shield_pickup_pos = (Vector2){ 
+		.x = (float)rand_range(-GAME_BORDER_RADIUS, GAME_BORDER_RADIUS),
+		.y = (float)rand_range(-GAME_BORDER_RADIUS, GAME_BORDER_RADIUS)
+	};
+
+	shield_pickup_show = true;
+
+}
+
 static void draw_and_update_enemies(float delta) {
 	Vector2 end_point = { 0 };
 	for (int i = 0; i < ENEMIES_BUFFER_SIZE; i++) {
@@ -250,9 +268,7 @@ static void draw_and_update_enemies(float delta) {
 				if (CheckCollisionCircles(enemy_buffer[i].pos, ENEMY_HIT_RANGE, player_pos, PLAYER_HIT_RADIUS) && !game_over) {
 					if (player_shield_on) {
 						Vector2 direction_to_move = Vector2Normalize(Vector2Subtract(player_pos, enemy_buffer[i].pos));
-						printf("Before: X: %f Y: %f\n", direction_to_move.x, direction_to_move.y);
 						player_pos = Vector2Add(enemy_buffer[i].pos, Vector2Scale(direction_to_move, ENEMY_HIT_RANGE + PLAYER_HIT_RADIUS));
-						printf("After: X: %f Y: %f\n", player_pos.x, player_pos.y);
 					} else {
 						set_game_over();
 					}
@@ -267,6 +283,7 @@ static void draw_and_update_enemies(float delta) {
 							enemy_buffer[i].health--;
 							if (!enemy_buffer[i].health) {
 								enemies_left--;
+								spawn_shield_pickup();
 							}
 							bullet_buffer[j].visible = false;
 						}
@@ -372,7 +389,12 @@ static void draw_and_update_player(float delta) {
 		// Check astroid collision
 		for (int i = 0; i < ASTROIDS_BUFFER_SIZE; i++) {
 			if (CheckCollisionCircles(astroid_buffer[i].pos, ASTROID_SIZE, player_pos, PLAYER_HIT_RADIUS) && !game_over) {
-				set_game_over();
+				if (player_shield_on) {
+					Vector2 direction_to_move = Vector2Normalize(Vector2Subtract(player_pos, astroid_buffer[i].pos));
+					player_pos = Vector2Add(astroid_buffer[i].pos, Vector2Scale(direction_to_move, ASTROID_SIZE + PLAYER_HIT_RADIUS));
+				} else {
+					set_game_over();
+				}
 			}
 		}
 
@@ -440,6 +462,22 @@ static void draw_and_update_bullets(float delta) {
 			}
 		}
 		
+	}
+}
+
+static void draw_and_update_pickups(void) {
+	if (shield_pickup_show) {
+		Color background_color = BLUE;
+		background_color.a = 100;
+		DrawCircleV(shield_pickup_pos, PICKUP_SIZE, background_color);
+		DrawCircleV(shield_pickup_pos, 5, BLUE);
+		DrawRing(shield_pickup_pos, PICKUP_SIZE, PICKUP_SIZE + 3, 0, 360, 100, BLUE);
+
+		if (CheckCollisionCircles(shield_pickup_pos, PICKUP_SIZE, player_pos, PLAYER_HIT_RADIUS)) {
+			player_shield_start_time = GetTime();
+			player_shield_on = true;
+			shield_pickup_show = false;
+		}
 	}
 }
 
@@ -612,6 +650,8 @@ static void on_scene_update(void(*change_scene)(scene *scn), bool *should_exit, 
 			draw_and_update_astroids(delta);
 
 			draw_and_update_enemies(delta);
+			
+			draw_and_update_pickups();
 
 			// Draw game border
 			DrawRing((Vector2){0.0f, 0.0f}, GAME_BORDER_RADIUS, GAME_BORDER_RADIUS+5, 0, 360, 150, GOLD);
@@ -639,6 +679,10 @@ static void on_scene_update(void(*change_scene)(scene *scn), bool *should_exit, 
 		
 		if (!player_health && !game_over) {
 			set_game_over();
+		}
+
+		if (!game_over && (GetTime() - player_shield_start_time) > 3) {
+			player_shield_on = false;
 		}
 
 		draw_health();

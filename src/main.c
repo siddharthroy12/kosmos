@@ -1,6 +1,5 @@
 #include <time.h>
 #include "./scenes/main_scene.h"
-//#include "./scenes/game_scene.h"
 
 #include "raylib.h"
 
@@ -11,6 +10,9 @@
 scene current_scene = { 0 };
 bool scene_will_change = false;
 scene *scene_to_change_to = { 0 };
+
+// Global sound variable
+Sound click_sound;
 
 static void change_scene(scene *scn) {
     scene_to_change_to = scn;
@@ -23,7 +25,8 @@ int main(void) {
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Kosmos");
     SetWindowState(FLAG_WINDOW_RESIZABLE);
     InitAudioDevice();
-    
+
+    click_sound = LoadSound(ASSETS_PATH"click.wav");
    
     SetExitKey(0); // Do not exit on ESC key
 

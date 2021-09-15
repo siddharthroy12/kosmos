@@ -3,6 +3,8 @@
 
 #include "raylib.h"
 
+extern Sound click_sound;
+
 typedef struct button {
 	char *title;
 	short offset;
@@ -60,6 +62,7 @@ static void update_and_draw_button(button *button, Vector2 mouse_pos, Vector2 si
 
 	if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
 		if (CheckCollisionPointRec(mouse_pos, button_rec)) {
+			PlaySound(click_sound);
 			button->on_click();
 		}
 	}
