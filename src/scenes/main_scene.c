@@ -33,6 +33,17 @@ static void draw_version(void) {
 static void draw_credit(void) {
 	char *text = "@Siddharth_Roy12";
 	DrawText(text, 20, GetScreenHeight() - 40, 20, BLUE);
+
+	if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+		if (CheckCollisionPointRec(GetMousePosition(), (Rectangle){
+			.x = 20,
+			.y = GetScreenHeight() - 40,
+			.width = MeasureText(text, 20),
+			.height = MeasureTextEx(GetFontDefault(), text, 20, 0).y
+		})) {
+			OpenURL("https://twitter.com/Siddharth_Roy12");
+		}
+	}
 }
 
 static void exit_game(void) {
