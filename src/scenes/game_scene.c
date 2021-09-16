@@ -89,6 +89,7 @@ static int current_health_pickup_buffer = 0;
 
 static pickup shield_pickups[ENEMIES_BUFFER_SIZE] = { 0 };
 static int current_shield_pickup_buffer = 0;
+
 // Mouse
 static Vector2 virtual_mouse_pos = { 0 };
 
@@ -147,6 +148,15 @@ static void load_sounds(void) {
 	SetSoundVolume(player_damage_sound, SOUND_VOLUME);
 	pickup_sound = LoadSound(ASSETS_PATH"pickup.wav");
 	SetSoundVolume(pickup_sound, SOUND_VOLUME);
+}
+
+static void unload_sounds(void) {
+	UnloadSound(shoot_sound);
+	UnloadSound(enemy_shoot_sound);
+	UnloadSound(game_over_sound);
+	UnloadSound(enemy_damage_sound);
+	UnloadSound(player_damage_sound);
+	UnloadSound(pickup_sound);
 }
 
 static Vector2 clamp_value(Vector2 value, Vector2 min, Vector2 max) {
@@ -815,6 +825,9 @@ static void on_scene_update(void(*change_scene)(scene *scn), bool *should_exit, 
 }
 
 static void on_scene_exit(void) {
+	unload_sounds();
+	UnloadRenderTexture(render_texture);
+	UnloadTexture(player_texture);
 }
 
 scene game_scene = {
