@@ -52,5 +52,6 @@ int main(void) {
 
     current_scene.exit_fn();
     CloseWindow();
+    UnloadSound(click_sound);
     return 0;
 }
