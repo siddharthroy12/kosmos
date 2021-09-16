@@ -132,6 +132,7 @@ static Sound shoot_sound = { 0 };
 static Sound enemy_shoot_sound = { 0 };
 static Sound game_over_sound = { 0 };
 static Sound enemy_damage_sound = { 0 };
+static Sound enemy_death_sound = { 0 };
 static Sound player_damage_sound = { 0 };
 static Sound pickup_sound = { 0 };
 
@@ -144,6 +145,8 @@ static void load_sounds(void) {
 	SetSoundVolume(game_over_sound, SOUND_VOLUME);
 	enemy_damage_sound = LoadSound(ASSETS_PATH"enemy_damage.wav");
 	SetSoundVolume(enemy_damage_sound, SOUND_VOLUME);
+	enemy_death_sound = LoadSound(ASSETS_PATH"enemy_death.wav");
+	SetSoundVolume(enemy_death_sound, SOUND_VOLUME);
 	player_damage_sound = LoadSound(ASSETS_PATH"player_damage.wav");
 	SetSoundVolume(player_damage_sound, SOUND_VOLUME);
 	pickup_sound = LoadSound(ASSETS_PATH"pickup.wav");
@@ -155,6 +158,7 @@ static void unload_sounds(void) {
 	UnloadSound(enemy_shoot_sound);
 	UnloadSound(game_over_sound);
 	UnloadSound(enemy_damage_sound);
+	UnloadSound(enemy_death_sound);
 	UnloadSound(player_damage_sound);
 	UnloadSound(pickup_sound);
 }
@@ -333,6 +337,7 @@ static void draw_and_update_enemies(float delta) {
 							enemy_buffer[i].health--;
 							if (!enemy_buffer[i].health) {
 								enemies_left--;
+								PlaySound(enemy_death_sound);
 								spawn_shield_pickup();
 								health_pickups[current_health_pickup_buffer].pos = enemy_buffer[i].pos;
 								health_pickups[current_health_pickup_buffer].shown = true;
