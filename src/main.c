@@ -27,7 +27,7 @@ int main(void) {
     InitAudioDevice();
     ToggleFullscreen();
 
-    click_sound = LoadSound(ASSETS_PATH"click.wav");
+    click_sound = LoadSound(ASSETS_PATH"audio/toggle_002.ogg");
    
     SetExitKey(0); // Do not exit on ESC key
 
@@ -37,7 +37,7 @@ int main(void) {
 
     bool should_exit = false;
 
-    while (!should_exit && !WindowShouldClose()) {       
+    while (!should_exit && !WindowShouldClose()) {
         current_scene.update_fn(change_scene, &should_exit, GetFrameTime() * 1000);
 
         if (scene_will_change) {

@@ -18,7 +18,7 @@ scene game_scene;
 #define PLAYER_ACCLERATION 0.009f
 #define PLAYER_DEACCLERATION 0.003f
 #define PLAYER_HIT_RADIUS 20
-#define PLAYER_SIZE 40
+#define PLAYER_SIZE 50
 #define PLAYER_SHOOT_TIME 0.2
 #define PLAYER_MAX_HEALTH 5
 #define PLAYER_SHIELD_RAD 60
@@ -44,8 +44,8 @@ scene game_scene;
 
 #define RENDER_DISTANCE 1500
 
-#define OVERLAY_WINDOW_WIDTH 800
-#define OVERLAY_WINDOW_HEIGHT 500
+#define OVERLAY_WINDOW_WIDTH 650
+#define OVERLAY_WINDOW_HEIGHT 380
 
 #define IN_GAME_FONT_SIZE 25
 
@@ -61,7 +61,7 @@ typedef struct bullet {
 typedef struct astroid {
 	Vector2 pos;
 	Vector2 dir;
-	int segments;
+	float rotation;
 } astroid;
 
 typedef struct enemy {
@@ -77,12 +77,14 @@ typedef struct pickup {
 } pickup;
 
 static astroid astroid_buffer[ASTROIDS_BUFFER_SIZE] = { 0 };
+static Texture2D astroid_texture = { 0 };
 
 static bullet bullet_buffer[BULLETS_BUFFER_SIZE] = { 0 };
 static int current_bullet_buffer = 0;
 
 static enemy enemy_buffer[ENEMIES_BUFFER_SIZE] = { 0 };
 static int enemies_left = ENEMIES_BUFFER_SIZE;
+static Texture2D enemy_texture = { 0 };
 
 static pickup health_pickups[ENEMIES_BUFFER_SIZE] = { 0 };
 static int current_health_pickup_buffer = 0;
@@ -94,6 +96,7 @@ static int current_shield_pickup_buffer = 0;
 static Vector2 virtual_mouse_pos = { 0 };
 
 // Player
+static Texture2D cursor_texture = { 0 };
 static Texture2D player_texture = { 0 };
 static Vector2 player_pos = { 0.0f, 0.0f };
 static Vector2 player_dir = { 0.0f, 0.0f };
@@ -109,6 +112,8 @@ static bool player_border_touch = false;
 // Timer
 static double shoot_start_time;
 static double player_shield_start_time;
+static double game_start_time;
+static double game_over_time;
 
 // Render Texture
 static RenderTexture2D render_texture;
@@ -126,6 +131,8 @@ static button buttons[2];
 
 // State
 static bool show_debug_info = false;
+static bool won = false;
+static float previous_score;
 
 // Music
 static Sound shoot_sound = { 0 };
@@ -137,19 +144,19 @@ static Sound player_damage_sound = { 0 };
 static Sound pickup_sound = { 0 };
 
 static void load_sounds(void) {
-	shoot_sound = LoadSound(ASSETS_PATH"shoot.wav");
+	shoot_sound = LoadSound(ASSETS_PATH"audio/laserRetro_004.ogg");
 	SetSoundVolume(shoot_sound, SOUND_VOLUME);
-	enemy_shoot_sound = LoadSound(ASSETS_PATH"enemy_shoot.wav");
+	enemy_shoot_sound = LoadSound(ASSETS_PATH"audio/laserSmall_001.ogg");
 	SetSoundVolume(enemy_shoot_sound, SOUND_VOLUME);
-	game_over_sound = LoadSound(ASSETS_PATH"game_over.wav");
+	game_over_sound = LoadSound(ASSETS_PATH"audio/game_over.wav");
 	SetSoundVolume(game_over_sound, SOUND_VOLUME);
-	enemy_damage_sound = LoadSound(ASSETS_PATH"enemy_damage.wav");
+	enemy_damage_sound = LoadSound(ASSETS_PATH"audio/enemy_damage.wav");
 	SetSoundVolume(enemy_damage_sound, SOUND_VOLUME);
-	enemy_death_sound = LoadSound(ASSETS_PATH"enemy_death.wav");
+	enemy_death_sound = LoadSound(ASSETS_PATH"audio/explosionCrunch_000.ogg");
 	SetSoundVolume(enemy_death_sound, SOUND_VOLUME);
-	player_damage_sound = LoadSound(ASSETS_PATH"player_damage.wav");
+	player_damage_sound = LoadSound(ASSETS_PATH"audio/player_damage.wav");
 	SetSoundVolume(player_damage_sound, SOUND_VOLUME);
-	pickup_sound = LoadSound(ASSETS_PATH"pickup.wav");
+	pickup_sound = LoadSound(ASSETS_PATH"audio/confirmation_002.ogg");
 	SetSoundVolume(pickup_sound, SOUND_VOLUME);
 }
 
@@ -183,6 +190,14 @@ static void reset_state(void) {
 	enemies_left = ENEMIES_BUFFER_SIZE;
 	game_over = false;
 	game_pause = false;
+	game_start_time = GetTime();
+	won = false;
+	
+	if (LoadStorageValue(0) == 0) {
+		previous_score = 1000.0f;
+	} else {
+		previous_score = (float)LoadStorageValue(0)/(float)1000;
+	}
 
 	// Init bullets
 	for (int i = 0; i < BULLETS_BUFFER_SIZE; i++) {
@@ -199,7 +214,7 @@ static void reset_state(void) {
 		astroid_buffer[i] = (astroid){
 			.dir = (Vector2){ 0.0f, 0.0f },
 			.pos = (Vector2){ (float)rand_range(-SPAWN_RADIUS, SPAWN_RADIUS), (float)rand_range(-SPAWN_RADIUS, SPAWN_RADIUS) },
-			.segments = rand_range(5, 10)
+			.rotation = (float)rand_range(0, 360)
 		};
 	}
 
@@ -209,7 +224,7 @@ static void reset_state(void) {
 			.pos = (Vector2){ (float)rand_range(-SPAWN_RADIUS, SPAWN_RADIUS), (float)rand_range(-SPAWN_RADIUS, SPAWN_RADIUS) },
 			.dir = (Vector2){ 0.0f, 0.0f },
 			.health = ENEMY_MAX_HEALTH,
-			.shoot_start_time = 0.0f
+			.shoot_start_time = 0.0f,
 		};
 	}
 
@@ -364,10 +379,29 @@ static void draw_and_update_enemies(float delta) {
 			}
 
 			if (CheckCollisionCircles(enemy_buffer[i].pos, ENEMY_RADAR_RANGE, player_pos, RENDER_DISTANCE)) {
-				DrawRing(enemy_buffer[i].pos, ASTROID_SIZE, ASTROID_SIZE +3, 0,360, 5, RED);
+				//DrawRing(enemy_buffer[i].pos, ASTROID_SIZE, ASTROID_SIZE +3, 0,360, 5, RED);
 				Color inside = RED;
-				inside.a = 200;
-				DrawCircleSector(enemy_buffer[i].pos, ASTROID_SIZE, 0,360, 5, inside);
+				inside.a = 100;
+				DrawTexturePro(
+					enemy_texture,
+					(Rectangle){
+						.x = 0.0f,
+						.y = 0.0f,
+						.width = enemy_texture.width,
+						.height = enemy_texture.height
+					},
+					(Rectangle){
+						.x = enemy_buffer[i].pos.x,
+						.y = enemy_buffer[i].pos.y,
+						.width = (ASTROID_SIZE+50),
+						.height = (ASTROID_SIZE+50),
+					},
+					(Vector2){ (ASTROID_SIZE+50)/2, (ASTROID_SIZE+50)/2 },
+					0.0f,
+					WHITE
+				);
+				
+				//DrawCircleSector(enemy_buffer[i].pos, ASTROID_SIZE, 0,360, 5, inside);
 
 				// Draw rader range
 				inside = BLUE;
@@ -382,10 +416,31 @@ static void draw_and_update_enemies(float delta) {
 				}
 
 				// Draw gun
-				DrawLineEx(enemy_buffer[i].pos, end_point , 10, LIME);
+				DrawLineEx(enemy_buffer[i].pos, end_point , 7, WHITE);
 
 				// Draw Health
-				DrawText(TextFormat("HEALTH: %i", enemy_buffer[i].health), enemy_buffer[i].pos.x - 50, enemy_buffer[i].pos.y - 80, 20, YELLOW);
+				DrawRectanglePro(
+					(Rectangle){
+						enemy_buffer[i].pos.x,
+						enemy_buffer[i].pos.y - 80,
+						(100/ENEMY_MAX_HEALTH) * enemy_buffer[i].health,
+						10
+					},
+					(Vector2){ 100/2, 10/2 },
+					0.0f,
+					RED
+				);
+				DrawRectangleLinesEx(
+					(Rectangle){
+						enemy_buffer[i].pos.x - 50,
+						enemy_buffer[i].pos.y - 80,
+						100,
+						10
+					},
+					2,
+					RED
+				);
+				//DrawText(TextFormat("HEALTH: %i", enemy_buffer[i].health), enemy_buffer[i].pos.x - 50, enemy_buffer[i].pos.y - 80, 20, RED);
 			}
 		}
 	}
@@ -421,11 +476,9 @@ static void draw_and_update_player(float delta) {
 			.height = PLAYER_SIZE,
 		},
 		(Vector2){ PLAYER_SIZE/2, PLAYER_SIZE/2 },
-		rotation + 45,
+		rotation,
 		WHITE
 	);
-
-	DrawCircle(player_pos.x, player_pos.y, 5, RED);
 
 	if (show_debug_info) {
 		DrawRing(player_pos, PLAYER_HIT_RADIUS, PLAYER_HIT_RADIUS + 2, 0, 360, 100, GREEN);
@@ -512,8 +565,16 @@ static void draw_and_update_player(float delta) {
 static void draw_and_update_bullets(float delta) {
 	for (int i = 0; i < BULLETS_BUFFER_SIZE; i++) {
 		if (bullet_buffer[i].visible) {
-			DrawCircle(bullet_buffer[i].pos.x, bullet_buffer[i].pos.y, BULLET_SIZE, YELLOW);
+			//DrawCircle(bullet_buffer[i].pos.x, bullet_buffer[i].pos.y, BULLET_SIZE, WHITE);
+			//DrawLineV(bullet_buffer[i].pos, , WHITE);
+			DrawLineEx(
+				bullet_buffer[i].pos,
+				Vector2Add(bullet_buffer[i].pos, Vector2Scale((Vector2){bullet_buffer[i].dir.x, bullet_buffer[i].dir.y}, -50.0f)),
+				3,
+				bullet_buffer[i].enemy ? RED : BLUE
+			);
 		}
+
 
 		if (!game_pause) {
 			bullet_buffer[i].pos = Vector2Add(bullet_buffer[i].pos, (Vector2){
@@ -586,11 +647,30 @@ static void draw_and_update_astroids(float delta) {
 
 		if (Vector2Distance(astroid_buffer[i].pos, player_pos) < RENDER_DISTANCE) {
 			//rf_draw_circle_lines(astroid_buffer[i].pos.x, astroid_buffer[i].pos.y, ASTROID_SIZE, RF_GRAY);
-			DrawRing(astroid_buffer[i].pos, ASTROID_SIZE, ASTROID_SIZE +3, 0,360, astroid_buffer[i].segments, GRAY);
+			//DrawRing(astroid_buffer[i].pos, ASTROID_SIZE, ASTROID_SIZE +3, 0,360, astroid_buffer[i].segments, GRAY);
 			Color inside = GRAY;
 			inside.a = 200;
-			DrawCircleSector(astroid_buffer[i].pos, ASTROID_SIZE, 0,360, astroid_buffer[i].segments, inside);
+			//DrawCircleSector(astroid_buffer[i].pos, ASTROID_SIZE, 0,360, astroid_buffer[i].segments, inside);
 			//rf_draw_circle(astroid_buffer[i].pos.x, astroid_buffer[i].pos.y, ASTROID_SIZE, inside);
+
+			DrawTexturePro(
+				astroid_texture,
+				(Rectangle){
+					.x = 0, 
+					.y = 0, 
+					.width = astroid_texture.width,
+					.height = astroid_texture.height
+				},
+				(Rectangle){
+					.x = astroid_buffer[i].pos.x,
+					.y = astroid_buffer[i].pos.y,
+					.width = (ASTROID_SIZE*3),
+					.height = (ASTROID_SIZE*3)
+				},
+				(Vector2){ (ASTROID_SIZE*3)/2, (ASTROID_SIZE*3)/2 },
+				astroid_buffer[i].rotation,
+				WHITE
+			);
 
 			if (show_debug_info) {
 				DrawRing(astroid_buffer[i].pos, ASTROID_SIZE, ASTROID_SIZE +2, 0, 360, 100, GREEN);
@@ -617,7 +697,8 @@ static void draw_window(Color color) {
 
 static void draw_game_over(bool win) {
 	draw_window(BLUE);
-
+	const char *score = TextFormat("TIME: %.2f", game_over_time);
+	const char *_previous_score = TextFormat("PREVIOUS TIME: %.2f", previous_score);
 	char *over_text = "GAME OVER";
 	char *win_text = "YOU WIN";
 
@@ -627,6 +708,11 @@ static void draw_game_over(bool win) {
 	int pos_y = (RENDER_HEIGHT/2) - 150;
 
 	DrawText(current_text, pos_x, pos_y, 70, win ? GREEN : RED);
+
+	if (win) {
+		DrawText(score, (RENDER_WIDTH/2) - (MeasureText(score, 20)/2), (RENDER_HEIGHT/2)+210, 20, WHITE);
+		DrawText(_previous_score, (RENDER_WIDTH/2) - (MeasureText(_previous_score, 20)/2), (RENDER_HEIGHT/2)+250, 20, WHITE);
+	}
 
 	update_and_draw_button(&buttons[0], virtual_mouse_pos, (Vector2){ RENDER_WIDTH, RENDER_HEIGHT });
 	update_and_draw_button(&buttons[1], virtual_mouse_pos, (Vector2){ RENDER_WIDTH, RENDER_HEIGHT });
@@ -651,21 +737,104 @@ static void draw_game_pause() {
 
 static void draw_health(void) {
 	Vector2 pos = { 10.0f, 20.0f };
+	
+	DrawRectangleLinesEx(
+		(Rectangle){
+			15,
+			pos.y - 5,
+			(40.0f)*PLAYER_MAX_HEALTH + 5,
+			10.0f
+		},
+		2,
+		GREEN
+	);
+	
+	for (int i = 0; i < PLAYER_MAX_HEALTH; i++) {
+		pos.x = (40.0f * i) + 20;
+		DrawRectangleRec(
+			(Rectangle){
+				pos.x,
+				pos.y,
+				35.0f,
+				10.0f,
+			},
+			BLACK
+		);
+		DrawRectangleLinesEx(
+			(Rectangle){
+				pos.x,
+				pos.y,
+				35.0f,
+				10.0f,
+			},
+			1,
+			GREEN
+		);
+		
+	}
+
+	pos.x = 10.0f;
+
 	for (int i = 0; i < player_health; i++) {
 		pos.x = (40.0f * i) + 20;
-		DrawRectangleV(pos, (Vector2){ 30.0f, 10.0f }, GREEN);
+		DrawRectangleV(pos, (Vector2){ 35.0f, 10.0f }, GREEN);
 	}
 }
 
 static void draw_enemies_left(void) {
-	float left_offset = (RENDER_WIDTH/2) - ((enemies_left * 40.0f)/2);
+	float left_offset = (RENDER_WIDTH/2) - ((ENEMIES_BUFFER_SIZE * 40.0f)/2);
 
 	Vector2 pos = { 10.0f , 60.0f };
+
+	DrawRectangleLinesEx(
+		(Rectangle){
+			(RENDER_WIDTH/2) - ((ENEMIES_BUFFER_SIZE * 40.0f)/2) - 5,
+			pos.y - 5,
+			(40.0f)*ENEMIES_BUFFER_SIZE,
+			10.0f
+		},
+		2,
+		RED
+	);
+
+	for (int i = 0; i < ENEMIES_BUFFER_SIZE; i++) {
+		pos.x = (40.0f * i) + (RENDER_WIDTH/2) - ((ENEMIES_BUFFER_SIZE * 40.0f)/2);
+		
+		DrawRectangleRec(
+			(Rectangle){
+				pos.x,
+				pos.y,
+				30.0f,
+				10.0f,
+			},
+			BLACK
+		);
+
+		DrawRectangleLinesEx(
+			(Rectangle){
+				pos.x,
+				pos.y,
+				30.0f,
+				10.0f,
+			},
+			1,
+			RED
+		);
+	}
+	
+	pos.x = 10.0f;
 
 	for (int i = 0; i < enemies_left; i++) {
 		pos.x = (40.0f * i) + left_offset;
 		DrawRectangleV(pos, (Vector2){ 30.0f, 10.0f }, RED);
 	}
+}
+
+static void draw_score(void) {
+	const char *text = FormatText("TIME: %.2f", GetTime() - game_start_time);
+	const char *previous_score_text = FormatText("PREVIOUS TIME: %.2f", previous_score);
+	DrawText(text, RENDER_WIDTH-MeasureText("TIME: 000.00", 20)-10, 10, 20, WHITE);
+	DrawText(previous_score_text, RENDER_WIDTH-MeasureText("PREVIOUS TIME: 000.00", 20)-10, 30, 20, WHITE);
 }
 
 static void retry(void) {
@@ -696,9 +865,15 @@ static void on_scene_load(void) {
 
 	// Render texture initialization, used to hold the rendering result so we can easily resize it
 	render_texture = LoadRenderTexture(RENDER_WIDTH, RENDER_HEIGHT);
-	SetTextureFilter(render_texture.texture, FILTER_TRILINEAR);
+	SetTextureFilter(render_texture.texture, FILTER_BILINEAR);
 
-	player_texture = LoadTexture(ASSETS_PATH"player.png");
+	player_texture = LoadTexture(ASSETS_PATH"image/ship_H.png");
+
+	enemy_texture = LoadTexture(ASSETS_PATH"image/station_C.png");
+
+	astroid_texture = LoadTexture(ASSETS_PATH"image/meteor_detailedLarge.png");
+
+	cursor_texture = LoadTexture(ASSETS_PATH"image/crossair_white.png");
 
 	reset_state();
 
@@ -778,6 +953,14 @@ static void on_scene_update(void(*change_scene)(scene *scn), bool *should_exit, 
 		}
 
 		if (!enemies_left) {
+			if (!won) {
+				game_over_time = GetTime() - game_start_time;
+						
+				if (game_over_time < previous_score) {
+					SaveStorageValue(0, (int)(game_over_time*1000));
+				}
+			}
+			won = true;
 			draw_game_over(true);
 		}
 		
@@ -791,13 +974,31 @@ static void on_scene_update(void(*change_scene)(scene *scn), bool *should_exit, 
 
 		draw_health();
 		draw_enemies_left();
+		draw_score();
 
 		if (game_pause) {
 			draw_game_pause();
 		}
 
 		// Draw cursor
-		DrawCircle(virtual_mouse_pos.x, virtual_mouse_pos.y, 2, WHITE);
+		DrawTexturePro(
+			cursor_texture,
+			(Rectangle){
+				.x = 0.0f,
+				.y = 0.0f,
+				.width = cursor_texture.width,
+				.height = cursor_texture.height
+			},
+			(Rectangle) {
+				virtual_mouse_pos.x,
+				virtual_mouse_pos.y,
+				25,
+				25
+			},
+			(Vector2){ 25/2, 25/2 },
+			0.0f,
+			WHITE
+		);
 
 		if (show_debug_info) {
 			const char *fps_output = TextFormat("FPS: %i", GetFPS());
@@ -833,6 +1034,8 @@ static void on_scene_exit(void) {
 	unload_sounds();
 	UnloadRenderTexture(render_texture);
 	UnloadTexture(player_texture);
+	UnloadTexture(astroid_texture);
+	UnloadTexture(enemy_texture);
 }
 
 scene game_scene = {
