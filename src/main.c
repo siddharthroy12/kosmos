@@ -21,11 +21,10 @@ static void change_scene(scene *scn) {
 
 int main(void) {
     SetTraceLogLevel(LOG_NONE);
-    SetWindowState(FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
-    InitWindow(GetMonitorWidth(0), GetMonitorHeight(0), "Kosmos");
-    SetWindowState(FLAG_WINDOW_RESIZABLE);
+    SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT | FLAG_FULLSCREEN_MODE);
+    InitWindow(0, 0, "Kosmos");
     InitAudioDevice();
-    ToggleFullscreen();
+    //ToggleFullscreen();
 
     click_sound = LoadSound(ASSETS_PATH"audio/toggle_002.ogg");
    
@@ -45,9 +44,12 @@ int main(void) {
             scene_will_change = false;
         }
         
-        if (IsKeyPressed(KEY_F11)) {
-            ToggleFullscreen();
-        }
+        // if (IsKeyPressed(KEY_F11)) {
+        //     if (!IsWindowFullscreen())
+        //         SetWindowState(FLAG_WINDOW_MAXIMIZED);
+            
+        //     ToggleFullscreen();
+        // }
     }
 
     current_scene.exit_fn();
